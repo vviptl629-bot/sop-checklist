@@ -59,6 +59,15 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
 .mini.ghost{color:var(--sub)}
 .addrow{margin-top:12px}
 .addrow .addbtn{display:block;width:100%;text-align:center;font-size:14.5px;padding:10px}
+.clist-wrap{margin-top:6px}
+.clist-title{font-size:14px;font-weight:600;color:var(--accent2);margin:14px 0 6px;display:flex;align-items:center;gap:7px}
+.clist-n{display:inline-block;min-width:18px;text-align:center;font-size:12px;color:var(--sub);background:#f0e3d8;border-radius:20px;padding:1px 8px;font-weight:600}
+.clist-head{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;margin:16px 0 6px}
+.clist-head:active{opacity:.7}
+.clist-head .clist-arrow{color:var(--accent);font-size:12px;width:14px;text-align:center;flex:none}
+.done-wrap{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}
+ul.clist li.done{opacity:.72}
+ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 
 /* 弹出式输入层（解决小米浏览器键盘遮挡）：固定钉在屏幕顶部，键盘只盖下半屏，输入框始终可见 */
 .modal-mask{position:fixed;inset:0;background:rgba(40,28,20,.45);display:none;z-index:60;align-items:flex-start;justify-content:center;padding:8vh 4vw 0;box-sizing:border-box}
@@ -287,6 +296,16 @@ function save(){localStorage.setItem(KEY,JSON.stringify(state));schedulePush();}
 function esc(s){return (s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
 function escAttr(s){return esc(s).replace(/"/g,"&quot;")}
 
+let doneOpen={must:true,chart:true,reading:true};
+function itemHtml(g,it,checked){
+  return `<li class="${checked?'done':''}">
+    <input type="checkbox" ${checked?'checked':''} onchange="toggle('${g}','${it.id}',this.checked)">
+    <label>${esc(it.text)}</label>
+    <span class="acts">
+      <button class="mini" onclick="openEditor('edit','${g}','${it.id}')">编辑</button>
+      <button class="mini del" onclick="delItem('${g}','${it.id}')">删除</button>
+    </span></li>`;
+}
 function renderList(g){
   const panel=document.getElementById('tab-'+g);
   const list=state.lists[g];
@@ -294,31 +313,38 @@ function renderList(g){
   const n=list.items.length;
   const dc=list.items.filter(it=>done[it.id]).length;
   const pct=n?Math.round(dc/n*100):0;
+  const incomplete=list.items.filter(it=>!done[it.id]);
+  const complete=list.items.filter(it=>done[it.id]);
+  const open=doneOpen[g]!==false;
   let html=`<div class="card"><h2>${esc(list.title)}</h2>
-    <div class="prog"><div class="track"><div class="bar" style="width:${pct}%"></div></div><span>${dc}/${n}</span></div>
-    <ul class="clist">`;
-  list.items.forEach(it=>{
-    const checked=!!done[it.id];
-    html+=`<li>
-      <input type="checkbox" ${checked?'checked':''} onchange="toggle('${g}','${it.id}',this.checked)">
-      <label>${esc(it.text)}</label>
-      <span class="acts">
-        <button class="mini" onclick="openEditor('edit','${g}','${it.id}')">编辑</button>
-        <button class="mini del" onclick="delItem('${g}','${it.id}')">删除</button>
-      </span></li>`;
-  });
-  html+=`</ul><div class="addrow"><button class="mini addbtn" onclick="openEditor('add','${g}')">＋ 添加项目</button></div></div>`;
+    <div class="prog"><div class="track"><div class="bar" style="width:${pct}%"></div></div><span>${dc}/${n}</span></div>`;
+  // 待办（未完成的恒定在顶部）
+  html+=`<div class="clist-wrap"><div class="clist-title">待办 <span class="clist-n">${incomplete.length}</span></div>`;
+  if(incomplete.length){
+    html+='<ul class="clist">'+incomplete.map(it=>itemHtml(g,it,false)).join('')+'</ul>';
+  }else{
+    html+='<div class="rv-empty" style="padding:6px 0">今天都完成了，继续保持 ✦</div>';
+  }
+  html+='</div>';
+  // 已完成（可折叠收纳）
+  if(complete.length){
+    html+=`<div class="clist-wrap done-wrap">
+      <div class="clist-head" onclick="toggleDoneGroup('${g}')">
+        <span class="clist-arrow">${open?'▾':'▸'}</span>
+        <span class="clist-title">已完成 <span class="clist-n">${complete.length}</span></span>
+      </div>
+      <ul class="clist" id="doneList-${g}" style="display:${open?'block':'none'}">
+        ${complete.map(it=>itemHtml(g,it,true)).join('')}
+      </ul></div>`;
+  }
+  html+=`<div class="addrow"><button class="mini addbtn" onclick="openEditor('add','${g}')">＋ 添加项目</button></div></div>`;
   panel.innerHTML=html;
 }
-function updateProg(g){
-  const panel=document.getElementById('tab-'+g);
-  const list=state.lists[g];const done=day().done[g];
-  const n=list.items.length;const dc=list.items.filter(it=>done[it.id]).length;
-  const pct=n?Math.round(dc/n*100):0;
-  const bar=panel.querySelector('.bar');if(bar)bar.style.width=pct+'%';
-  const sp=panel.querySelector('.prog span');if(sp)sp.textContent=dc+'/'+n;
+function toggleDoneGroup(g){
+  doneOpen[g]=!(doneOpen[g]!==false);
+  renderList(g);
 }
-function toggle(g,id,v){day().done[g][id]=v;save();updateProg(g)}
+function toggle(g,id,v){day().done[g][id]=v; if(v) doneOpen[g]=true; save(); renderList(g)}
 function delItem(g,id){if(confirm('确定删除该项目？')){state.lists[g].items=state.lists[g].items.filter(x=>x.id!==id);for(const d in state.days)delete state.days[d].done[g][id];save();renderList(g)}}
 /* 弹出式输入层：添加 / 编辑 项目都用它，输入框固定钉在屏幕顶部，避开小米等浮层键盘遮挡 */
 var editorMode='add', editorGroup='', editorId='';
