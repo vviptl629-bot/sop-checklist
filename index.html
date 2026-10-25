@@ -434,6 +434,13 @@ renderAllLists();fillLog();
 if(sync.enabled&&sync.token){syncStatus('同步中…');syncNow();startAutoPull();}
 </script>
 <script>
+/* 软键盘遮挡修复：聚焦输入框时延迟滚动到视口中央，避开移动端输入法键盘 */
+document.addEventListener('focusin', function(e){
+  const el=e.target;
+  if(el && (el.tagName==='INPUT'||el.tagName==='TEXTAREA')){
+    setTimeout(function(){ try{ el.scrollIntoView({block:'center',behavior:'smooth'}); }catch(err){} }, 300);
+  }
+});
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./'}).catch(function(e){console.log('SW register failed',e)})});}
 </script>
 </body>
