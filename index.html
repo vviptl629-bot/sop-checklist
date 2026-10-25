@@ -289,6 +289,8 @@ try{state=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!state||!state.lists||!state.days){state={lists:seed(),days:{}}}
 
 let cur=new Date().toISOString().slice(0,10);
+let liveToday=cur;          // 真实今天，随轮询更新
+let followingToday=true;    // 当前视图是否锁定在"真实今天"
 let activeTab="must";
 
 function day(){return state.days[cur]||(state.days[cur]={done:{chart:{},must:{},reading:{}},reviews:[]})}
@@ -370,11 +372,28 @@ function confirmEditor(){
 
 function renderAllLists(){['must','chart','reading'].forEach(renderList)}
 
-function setDate(d){cur=d;rvOpen.add(d);cancelRvEdit();renderAllLists();fillLog()}
-function goToday(){cur=new Date().toISOString().slice(0,10);cancelRvEdit();document.getElementById('dateIn').value=cur;renderAllLists();fillLog()}
+function setDate(d){cur=d;followingToday=(d===liveToday);rvOpen.add(d);cancelRvEdit();renderAllLists();fillLog()}
+function goToday(){cur=new Date().toISOString().slice(0,10);liveToday=cur;followingToday=true;cancelRvEdit();document.getElementById('dateIn').value=cur;renderAllLists();fillLog()}
 function fillLog(){
   document.getElementById('dateIn').value=cur;
   renderReviews();
+}
+/* 跨天自动切换：页面临夜未关时，若当前视图锁定在"今天"，午夜后自动切到新的一天 */
+function checkDayRollover(){
+  const t=new Date().toISOString().slice(0,10);
+  if(t===liveToday) return;
+  liveToday=t;
+  if(followingToday){
+    cur=t;
+    const di=document.getElementById('dateIn'); if(di) di.value=t;
+    cancelRvEdit();
+    renderAllLists(); fillLog();
+    try{window.scrollTo({top:0,behavior:'smooth'});}catch(e){}
+  }
+}
+function startDayWatcher(){
+  setInterval(checkDayRollover,30000);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) checkDayRollover(); });
 }
 
 /* ---------- 多维复盘（六类 + 全部） ---------- */
@@ -600,7 +619,7 @@ function importJSON(input){
   };
   r.readAsText(f);
 }
-function resetAll(){if(confirm('确定清空全部数据？此操作不可恢复。')){localStorage.removeItem(KEY);state={lists:seed(),days:{}};cur=new Date().toISOString().slice(0,10);document.getElementById('dateIn').value=cur;renderAllLists();fillLog()}}
+function resetAll(){if(confirm('确定清空全部数据？此操作不可恢复。')){localStorage.removeItem(KEY);state={lists:seed(),days:{}};cur=new Date().toISOString().slice(0,10);liveToday=cur;followingToday=true;document.getElementById('dateIn').value=cur;renderAllLists();fillLog()}}
 
 /* ---------- GitHub Gist 云端同步（移植自每日复盘工作台） ---------- */
 const SYNC_KEY='sop_sync_v1', SYNC_FILE='sop_checklist_data.json', SYNC_VER=1;
@@ -628,8 +647,10 @@ document.getElementById('syncClearToken').onclick=()=>{if(window.confirm('清除
 /* ---------- 初始化 ---------- */
 document.getElementById('dateIn').value=cur;
 rvOpen.add(cur);
+liveToday=cur; followingToday=true;
 applyRvTypeUI();
 renderAllLists();fillLog();
+startDayWatcher();
 if(sync.enabled&&sync.token){syncStatus('同步中…');syncNow();startAutoPull();}
 </script>
 <script>
