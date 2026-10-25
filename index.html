@@ -21,8 +21,13 @@ html,body{margin:0;padding:0}
 body{background:var(--bg);color:var(--ink);font-family:"Iowan Old Style","Palatino Linotype",Georgia,"Songti SC","PingFang SC","Microsoft YaHei",serif;line-height:1.6;
   padding-bottom:calc(var(--dock-h) + env(safe-area-inset-bottom,0px) + 12px)}
 .wrap{max-width:860px;margin:0 auto;padding:18px 16px 8px}
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 header h1{font-size:21px;margin:0 0 2px;color:var(--accent)}
 header p{margin:0;color:var(--sub);font-size:12.5px}
+.sync-pill{border:1px solid var(--line);background:#fffdf9;color:var(--sub);border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap;flex:none;margin-top:2px}
+.sync-pill.ok{border-color:var(--ok);color:var(--ok)}
+.sync-pill.warn{border-color:#d9b24a;color:#9a7a1e}
+.sync-pill.err{border-color:var(--accent);color:var(--accent);background:#f6e7e0}
 .datebar{display:flex;align-items:center;gap:10px;margin:14px 0 6px;flex-wrap:wrap}
 .datebar input[type=date]{border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:14px;background:var(--card);color:var(--ink);font-family:inherit}
 .btn{border:1px solid var(--line);background:var(--card);color:var(--sub);border-radius:12px;padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit}
@@ -61,6 +66,18 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
 .field textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px;font-size:14px;font-family:inherit;resize:vertical;background:#fffdf9;color:var(--ink)}
 .field textarea:focus{outline:none;border-color:var(--accent)}
 
+/* 多维复盘 */
+.rv-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.rv-tag{border:1px solid var(--line);background:#fffdf9;color:var(--sub);border-radius:20px;padding:5px 13px;font-size:13px;cursor:pointer;font-family:inherit}
+.rv-tag.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.rv-item{position:relative;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:9px;font-size:13.5px;padding-right:62px;background:#fffdf9}
+.rv-item .tag{margin-right:8px}
+.rv-sub{margin-top:3px;color:var(--sub);font-size:12.5px}
+.rv-sub.bad{color:var(--accent)}
+.rv-item .mini{position:absolute;right:8px;top:9px}
+.rv-empty{color:var(--sub);font-size:13px;padding:6px 0}
+
 .wtab{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
 .wtab th,.wtab td{border:1px solid var(--line);padding:8px;vertical-align:top;text-align:left}
 .wtab th{background:#f0e9df;color:var(--sub);font-weight:600}
@@ -71,8 +88,11 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
 .setting-row label{font-size:13px;color:var(--accent2);font-weight:600}
 .setting-row input,.setting-row textarea{border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px;font-family:inherit;background:#fffdf9;color:var(--ink)}
 .setting-row .hint{font-size:12px;color:var(--sub)}
-.stub{opacity:.6;pointer-events:none}
 .foot{margin-top:10px;font-size:12px;color:var(--sub)}
+.sync-status{font-size:12.5px;color:var(--sub);min-height:16px;margin-top:4px}
+.sync-status.ok{color:var(--ok)} .sync-status.warn{color:#9a7a1e} .sync-status.err{color:var(--accent)}
+.sync-gist{font-size:12px;color:var(--sub);margin-top:6px}
+.sync-gist a{color:var(--accent)}
 
 /* Dock */
 .dock{position:fixed;left:0;right:0;bottom:0;height:calc(var(--dock-h) + env(safe-area-inset-bottom,0px));
@@ -90,14 +110,19 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
   ul.clist label{font-size:15px}
   .dock-btn{font-size:11.5px}
   .dock-btn .ic{font-size:17px}
+  .wtab{font-size:12px}
+  .wtab th,.wtab td{padding:6px}
 }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>每日 SOP 核查表</h1>
-    <p>图表复盘 · 每日必做 · 读书SOP · 每日记录 · 周复盘</p>
+    <div>
+      <h1>每日 SOP 核查表</h1>
+      <p>图表复盘 · 每日必做 · 读书SOP · 每日记录 · 周复盘</p>
+    </div>
+    <div class="sync-pill" id="syncPill" onclick="showTab('settings')">同步 · 未启用</div>
   </header>
 
   <div class="datebar">
@@ -123,6 +148,30 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
       </div>
     </div>
     <div class="card">
+      <h2>多维复盘（六类）</h2>
+      <div class="rv-tags">
+        <span class="rv-tag active" data-type="life">生活</span>
+        <span class="rv-tag" data-type="trade">交易</span>
+        <span class="rv-tag" data-type="study">学习</span>
+        <span class="rv-tag" data-type="idea">idea</span>
+        <span class="rv-tag" data-type="think">思考</span>
+        <span class="rv-tag" data-type="summary">一日总结</span>
+      </div>
+      <div id="rvNormal">
+        <div class="field"><label>这一段做了什么</label><textarea id="rvWhat" rows="2" placeholder="例如：完成了早餐、看了 PA 课程第 3 集"></textarea></div>
+        <div class="field"><label>做对了什么</label><textarea id="rvGood" rows="2" placeholder="提炼一个可复用的正确动作"></textarea></div>
+        <div class="field"><label>哪里可以更好</label><textarea id="rvBad" rows="2" placeholder="记录失误、情绪或下次要避开的坑"></textarea></div>
+      </div>
+      <div id="rvSingle" style="display:none">
+        <div class="field"><label id="rvSingleLabel">内容</label><textarea id="rvSingleText" rows="4" placeholder="写下你的复盘…"></textarea></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn warn" onclick="rvReset()">清空</button>
+        <button class="btn" style="border-color:var(--accent);color:var(--accent)" onclick="addReview()">+ 记一条复盘</button>
+      </div>
+      <div id="rvList" style="margin-top:14px"></div>
+    </div>
+    <div class="card">
       <h2>周复盘视图（最近 7 天）</h2>
       <div class="datebar" style="margin:4px 0 12px">
         <span style="font-size:13px;color:var(--sub)">周截止日</span>
@@ -134,21 +183,25 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
   </section>
   <!-- 设置 -->
   <section class="panel" id="tab-settings">
-    <div class="card">
-      <h2>云端同步（待部署）</h2>
-      <div class="setting-row stub">
+    <div class="card" id="syncCard">
+      <h2>云端同步</h2>
+      <div class="setting-row">
         <label>GitHub Token</label>
-        <input type="password" placeholder="正式部署时填入（账号 vviptl629-bot）">
-        <span class="hint">将与你的工作台 / 学习台使用同一套 Gist 同步方案。</span>
+        <input type="password" id="syncToken" placeholder="粘贴 GitHub Token（账号 vviptl629-bot）" autocomplete="off">
+        <span class="hint">Token 仅存本机浏览器，用于读写你的私有 Gist。建议用 fine-grained token 并勾选 gist 权限。</span>
       </div>
-      <div class="setting-row stub">
-        <label>Gist ID</label>
-        <input placeholder="正式部署时自动生成">
+      <div class="setting-row">
+        <label>Gist ID（留空自动新建）</label>
+        <input id="syncGistId" placeholder="留空则首次同步自动创建">
       </div>
-      <div class="setting-row stub">
-        <button class="btn" disabled>测试连接</button>
+      <div class="setting-row" style="flex-direction:row;flex-wrap:wrap;gap:8px">
+        <button class="btn" id="syncEnable" style="border-color:var(--accent);color:var(--accent)">启用并同步</button>
+        <button class="btn" id="syncNow">立即同步</button>
+        <button class="btn warn" id="syncClearToken">清除 Token</button>
       </div>
-      <div class="foot">说明：当前为样式稿，数据仅存本机浏览器。确认部署后会接入 GitHub Gist 跨设备同步（45s 拉取 + 防抖推送），与现有项目一致。</div>
+      <div class="sync-status" id="syncStatus"></div>
+      <div class="sync-gist" id="syncGistInfo"></div>
+      <div class="foot">每 45 秒自动拉取、改动后 0.8 秒防抖推送。两台设备用相同 Token + Gist ID 即共享同一份数据。</div>
     </div>
     <div class="card">
       <h2>数据管理</h2>
@@ -176,7 +229,7 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
 </nav>
 
 <script>
-const KEY="sop_proto_C_v2";
+const KEY="sop_proto_C_v3";
 const DEFAULTS={
   must:{title:"每日必做任务（积累）",items:[
     "固定时间起床（不熬夜）",
@@ -205,6 +258,7 @@ const DEFAULTS={
     "输出一句话总结/收获"
   ]}
 };
+const REVIEW_TYPES={life:'生活',trade:'交易',study:'学习',idea:'idea',think:'思考',summary:'一日总结'};
 function uid(){return 'i'+Math.random().toString(36).slice(2,9)}
 function seed(){const L={};for(const g in DEFAULTS)L[g]={title:DEFAULTS[g].title,items:DEFAULTS[g].items.map(t=>({id:uid(),text:t}))};return L}
 
@@ -216,8 +270,8 @@ let cur=new Date().toISOString().slice(0,10);
 let activeTab="must";
 let editingId=null;
 
-function day(){return state.days[cur]||(state.days[cur]={done:{chart:{},must:{},reading:{}},log:"",problem:"",improve:""})}
-function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function day(){return state.days[cur]||(state.days[cur]={done:{chart:{},must:{},reading:{}},log:"",problem:"",improve:"",reviews:[]})}
+function save(){localStorage.setItem(KEY,JSON.stringify(state));schedulePush();}
 function esc(s){return (s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
 function escAttr(s){return esc(s).replace(/"/g,"&quot;")}
 
@@ -282,22 +336,71 @@ function fillLog(){
   document.getElementById('problem').value=dd.problem||"";
   document.getElementById('improve').value=dd.improve||"";
   document.getElementById('dateIn').value=cur;
+  renderReviews();
 }
 ['log','problem','improve'].forEach(k=>{
   document.addEventListener('input',e=>{if(e.target.id===k){day()[k]=e.target.value;save()}});
 });
+
+/* ---------- 多维复盘（六类） ---------- */
+let rvType='life';
+function applyRvTypeUI(){
+  const single=['idea','think','summary'].includes(rvType);
+  document.getElementById('rvNormal').style.display=single?'none':'block';
+  document.getElementById('rvSingle').style.display=single?'block':'none';
+  if(single){
+    document.getElementById('rvSingleLabel').textContent = rvType==='summary'?'这一天，整体上' : (rvType==='idea'?'点子 / 想法':'思考 / 感悟');
+    document.getElementById('rvSingleText').placeholder = rvType==='summary'?'用一段话总结今天：整体做了什么、状态如何、最关键的收获或教训。' : (rvType==='idea'?'记下突然冒出的点子、灵感或想法':'记录一段思考、推演或感悟：触发是什么、怎么想的、得出什么结论。');
+  }
+  document.querySelectorAll('.rv-tag').forEach(t=>t.classList.toggle('active',t.dataset.type===rvType));
+}
+function rvReset(){document.getElementById('rvWhat').value='';document.getElementById('rvGood').value='';document.getElementById('rvBad').value='';document.getElementById('rvSingleText').value='';}
+function addReview(){
+  const single=['idea','think','summary'].includes(rvType);
+  let what, good='', bad='';
+  if(single){ what=document.getElementById('rvSingleText').value.trim(); }
+  else { what=document.getElementById('rvWhat').value.trim(); good=document.getElementById('rvGood').value.trim(); bad=document.getElementById('rvBad').value.trim(); }
+  if(!what) return;
+  const revs=day().reviews||(day().reviews=[]);
+  revs.unshift({id:'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),type:rvType,what,good,bad,ts:Date.now()});
+  rvReset();
+  save(); renderReviews();
+}
+function renderReviews(){
+  const revs=(day().reviews||[]).slice().sort((a,b)=>b.ts-a.ts);
+  const box=document.getElementById('rvList');
+  if(!revs.length){ box.innerHTML='<div class="rv-empty">还没有复盘记录，选一个类型记一条。</div>'; return; }
+  let h='';
+  revs.forEach(r=>{
+    const label=REVIEW_TYPES[r.type]||'生活';
+    const hasGB=(r.good||r.bad);
+    let body=esc(r.what||'');
+    if(hasGB){
+      if(r.good) body+='<div class="rv-sub">✔ '+esc(r.good)+'</div>';
+      if(r.bad) body+='<div class="rv-sub bad">✘ '+esc(r.bad)+'</div>';
+    }
+    h+=`<div class="rv-item"><span class="tag">${label}</span>${body}<button class="mini del" onclick="delReview('${r.id}')">删除</button></div>`;
+  });
+  box.innerHTML=h;
+}
+function delReview(id){ if(confirm('删除这条复盘？')){ const revs=day().reviews||[]; day().reviews=revs.filter(x=>x.id!==id); save(); renderReviews(); } }
+document.querySelectorAll('.rv-tag').forEach(t=>t.addEventListener('click',()=>{rvType=t.dataset.type;applyRvTypeUI();}));
+
 function renderWeek(){
   const end=document.getElementById('weekEnd').value||cur;
   const days=[];
   for(let i=6;i>=0;i--){const d=new Date(end);d.setDate(d.getDate()-i);days.push(d.toISOString().slice(0,10))}
-  let html='<table class="wtab"><thead><tr><th style="width:80px">日期</th><th>做了什么</th><th>卡点/问题</th><th>明日改进</th><th style="width:60px">完成度</th></tr></thead><tbody>';
+  let html='<table class="wtab"><thead><tr><th style="width:70px">日期</th><th>做了什么</th><th>卡点/问题</th><th>明日改进</th><th>复盘</th><th style="width:55px">完成度</th></tr></thead><tbody>';
   days.forEach(d=>{
     const rec=state.days[d];
     const lc=rec?rec.log||"":"",pc=rec?rec.problem||"":"",im=rec?rec.improve||"":"";
+    const revs=rec?rec.reviews||[]:[];
+    let rc={};revs.forEach(r=>rc[r.type]=(rc[r.type]||0)+1);
+    const rtags=Object.keys(rc).map(t=>'<span class="tag">'+REVIEW_TYPES[t]+rc[t]+'</span>').join(' ')||'—';
     let tot=0,done=0;
     for(const g of ['chart','must','reading']){state.lists[g].items.forEach(it=>{tot++;if(rec&&rec.done[g]&&rec.done[g][it.id])done++})}
     const pct=tot?Math.round(done/tot*100):0;
-    html+=`<tr><td>${d.slice(5)}</td><td>${esc(lc)||"—"}</td><td>${esc(pc)||"—"}</td><td>${esc(im)||"—"}</td><td><span class="tag">${pct}%</span></td></tr>`;
+    html+=`<tr><td>${d.slice(5)}</td><td>${esc(lc)||"—"}</td><td>${esc(pc)||"—"}</td><td>${esc(im)||"—"}</td><td>${rtags}</td><td><span class="tag">${pct}%</span></td></tr>`;
   });
   html+="</tbody></table>";
   document.getElementById('weekOut').innerHTML=html;
@@ -317,9 +420,35 @@ function exportJSON(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'
 function importJSON(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(d&&d.lists&&d.days){state=d;save();renderAllLists();fillLog();renderWeek();alert('导入成功')}else alert('文件格式不正确')}catch(e){alert('解析失败')};input.value=''};r.readAsText(f)}
 function resetAll(){if(confirm('确定清空全部数据？此操作不可恢复。')){localStorage.removeItem(KEY);state={lists:seed(),days:{}};cur=new Date().toISOString().slice(0,10);document.getElementById('dateIn').value=cur;renderAllLists();fillLog();renderWeek()}}
 
+/* ---------- GitHub Gist 云端同步（移植自每日复盘工作台） ---------- */
+const SYNC_KEY='sop_sync_v1', SYNC_FILE='sop_checklist_data.json', SYNC_VER=1;
+let sync={enabled:false,token:'',gistId:'',_t:null,_retry:null,_lastOk:0,rev:0,lastRev:0,tokenAt:0,dirty:false};
+try{const _s=JSON.parse(localStorage.getItem(SYNC_KEY)||'{}');sync.enabled=!!_s.enabled;sync.token=_s.token||'';sync.gistId=_s.gistId||'';sync.rev=parseInt(_s.rev||'0',10)||0;sync.lastRev=parseInt(_s.lastRev||'0',10)||0;sync.tokenAt=parseInt(_s.tokenAt||'0',10)||0;}catch(e){}
+function saveSyncCfg(){localStorage.setItem(SYNC_KEY,JSON.stringify({enabled:sync.enabled,token:sync.token,gistId:sync.gistId,rev:sync.rev,lastRev:sync.lastRev,tokenAt:sync.tokenAt}));}
+const TOKEN_TTL_DAYS=90;
+function tokenAgeDays(){return sync.tokenAt?Math.floor((Date.now()-sync.tokenAt)/86400000):0;}
+function tokenExpired(){return tokenAgeDays()>=TOKEN_TTL_DAYS;}
+function syncStatus(msg,cls){const el=document.getElementById('syncStatus');if(el){el.textContent=msg||'';el.className='sync-status'+(cls?' '+cls:'');}const pill=document.getElementById('syncPill');if(pill){pill.textContent=msg?msg.replace(/^已同步 /,'同步 '):'同步 · 未启用';pill.className='sync-pill'+(cls?' '+cls:'');}}
+function payload(){sync.rev=Math.max(sync.rev||0,sync.lastRev||0)+1;return JSON.stringify({v:SYNC_VER,rev:sync.rev,baseRev:sync.lastRev||0,updatedAt:Date.now(),state:state});}
+async function gistReq(method,id,body){const url=id?('https://api.github.com/gists/'+id):'https://api.github.com/gists';const opt={method,headers:{'Authorization':'Bearer '+sync.token,'Content-Type':'application/json','Accept':'application/vnd.github+json'}};if(body)opt.body=JSON.stringify(body);const r=await fetch(url,opt);if(r.status===401)throw new Error('GitHub 401 · Token 已失效，请重新生成带 gist 权限的新 Token');if(r.status===403)throw new Error('GitHub 403 · Token 缺少 gist 权限');if(!r.ok)throw new Error('GitHub '+r.status);return r.json();}
+async function pushSync(){if(!sync.enabled||!sync.token)return;clearTimeout(sync._t);try{const body=payload();if(!sync.gistId){const g=await gistReq('POST',null,{description:'每日SOP核查表 数据同步',public:false,files:{[SYNC_FILE]:{content:body}}});sync.gistId=g.id;saveSyncCfg();}else{await gistReq('PATCH',sync.gistId,{files:{[SYNC_FILE]:{content:body}}});}sync.lastRev=sync.rev;sync.dirty=false;saveSyncCfg();syncStatus('已同步 '+new Date().toLocaleTimeString(),'ok');if(sync._retry){clearInterval(sync._retry);sync._retry=null;}}catch(e){sync._pending=true;if(/40[13]/.test(e&&e.message||'')){if(sync._retry){clearInterval(sync._retry);sync._retry=null;}syncStatus('⚠ '+(e.message||'同步失败'),'err');return;}syncStatus(navigator.onLine===false?'离线，联网后上传':'同步失败，将重试：'+(e&&e.message?e.message:e),'warn');startPendingRetry();}}
+function startPendingRetry(){if(sync._retry)return;sync._retry=setInterval(()=>{if(!sync.enabled||!sync.token){clearInterval(sync._retry);sync._retry=null;return;}pushSync();},6000);}
+function schedulePush(){if(!sync.enabled||!sync.token)return;sync.dirty=true;clearTimeout(sync._t);sync._t=setTimeout(pushSync,800);}
+async function pullSync(silent){if(!sync.enabled||!sync.token||!sync.gistId)return;try{const g=await gistReq('GET',sync.gistId);const f=g.files&&g.files[SYNC_FILE];if(!f||!f.content)return;const d=JSON.parse(f.content);if(d&&d.rev&&d.rev>sync.rev){if(d.state){state=d.state;save();rerenderAll();}sync.rev=d.rev;sync.lastRev=d.rev;saveSyncCfg();}else if(d&&d.rev){sync.lastRev=d.rev;saveSyncCfg();}sync._lastOk=Date.now();if(!silent)syncStatus('已同步云端 '+new Date().toLocaleTimeString(),'ok');}catch(e){if(/40[13]/.test(e&&e.message||'')){if(sync._retry){clearInterval(sync._retry);sync._retry=null;}syncStatus('⚠ '+(e.message||'拉取失败'),'err');return;}if(!silent)syncStatus('拉取失败：'+(e&&e.message?e.message:e),'err');}}
+async function syncNow(){if(!sync.enabled||!sync.token){syncStatus('请先启用同步','err');return;}syncStatus('同步中…');await pullSync();await pushSync();}
+let _autoPull=null;function startAutoPull(){if(_autoPull)return;_autoPull=setInterval(()=>{(async()=>{if(typeof navigator!=='undefined'&&navigator.onLine===false)return;if(sync.dirty){await pushSync();}await pullSync(true);})();},45000);}
+function showGistInfo(){const el=document.getElementById('syncGistInfo');if(!el)return;el.innerHTML=sync.gistId?('已绑定私有 Gist：<a href="https://gist.github.com/'+sync.gistId+'" target="_blank" rel="noopener">'+sync.gistId+'</a><br>在两台设备用<b>相同 Token + 此 ID</b> 即可共享同一份数据。'):'';}
+function rerenderAll(){renderAllLists();fillLog();renderWeek();if(activeTab==='log')renderReviews();}
+document.getElementById('syncEnable').onclick=async()=>{const prev=sync.token;sync.token=document.getElementById('syncToken').value.trim();sync.gistId=document.getElementById('syncGistId').value.trim();if(!sync.token){syncStatus('请先粘贴 Token','err');return;}if(sync.token!==prev)sync.tokenAt=Date.now();sync.enabled=true;saveSyncCfg();syncStatus('同步中…');await syncNow();startAutoPull();showGistInfo();};
+document.getElementById('syncNow').onclick=()=>syncNow();
+document.getElementById('syncClearToken').onclick=()=>{if(window.confirm('清除本机保存的 Token 并停用同步？')){sync.token='';sync.tokenAt=0;sync.enabled=false;sync.gistId='';saveSyncCfg();document.getElementById('syncToken').value='';document.getElementById('syncGistId').value='';showGistInfo();syncStatus('已清除本机 Token');}};
+
+/* ---------- 初始化 ---------- */
 document.getElementById('dateIn').value=cur;
 document.getElementById('weekEnd').value=cur;
+applyRvTypeUI();
 renderAllLists();fillLog();renderWeek();
+if(sync.enabled&&sync.token){syncStatus('同步中…');syncNow();startAutoPull();}
 </script>
 <script>
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./'}).catch(function(e){console.log('SW register failed',e)})});}
