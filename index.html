@@ -434,13 +434,34 @@ renderAllLists();fillLog();
 if(sync.enabled&&sync.token){syncStatus('同步中…');syncNow();startAutoPull();}
 </script>
 <script>
-/* 软键盘遮挡修复：聚焦输入框时延迟滚动到视口中央，避开移动端输入法键盘 */
-document.addEventListener('focusin', function(e){
-  const el=e.target;
-  if(el && (el.tagName==='INPUT'||el.tagName==='TEXTAREA')){
-    setTimeout(function(){ try{ el.scrollIntoView({block:'center',behavior:'smooth'}); }catch(err){} }, 300);
+/* 软键盘遮挡修复：聚焦输入框时，用 VisualViewport 计算键盘顶部边界，
+   把当前输入框滚到键盘上方留白处（而非视口正中，避免被键盘盖住） */
+(function(){
+  function ensureVisible(el){
+    if(!el) return;
+    setTimeout(function(){
+      var vv = window.visualViewport;
+      var keyboardTop = vv ? (vv.height + (vv.offsetTop||0)) : window.innerHeight;
+      var rect = el.getBoundingClientRect();
+      var margin = 24;
+      if(rect.bottom > keyboardTop - margin){
+        var delta = rect.bottom - (keyboardTop - margin);
+        try{ window.scrollBy({top: delta, behavior:'smooth'}); }
+        catch(e){ window.scrollBy(0, delta); }
+      }
+    }, 320);
   }
-});
+  document.addEventListener('focusin', function(e){
+    var el = e.target;
+    if(el && (el.tagName==='INPUT'||el.tagName==='TEXTAREA')) ensureVisible(el);
+  });
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', function(){
+      var el = document.activeElement;
+      if(el && (el.tagName==='INPUT'||el.tagName==='TEXTAREA')) ensureVisible(el);
+    });
+  }
+})();
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./'}).catch(function(e){console.log('SW register failed',e)})});}
 </script>
 </body>
