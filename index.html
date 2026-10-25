@@ -88,6 +88,13 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
 .rv-sub{margin-top:3px;color:var(--sub);font-size:14px}
 .rv-sub.bad{color:var(--accent)}
 .rv-empty{color:var(--sub);font-size:13px;padding:6px 0}
+.rv-group{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:#fffdf9;overflow:hidden}
+.rv-group-head{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;user-select:none}
+.rv-group-head:active{background:#f6efe6}
+.rv-group-arrow{color:var(--accent);font-size:12px;width:14px;text-align:center;flex:none}
+.rv-group-date{flex:1;font-size:14.5px;font-weight:600;color:var(--ink)}
+.rv-group-cnt{font-size:12.5px;color:var(--sub);background:#f0e3d8;border-radius:20px;padding:1px 9px;flex:none}
+.rv-group-body{padding:2px 12px 12px}
 
 .tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12.5px;background:#f0e3d8;color:var(--accent);font-weight:600}
 
@@ -328,7 +335,7 @@ function confirmEditor(){
 
 function renderAllLists(){['must','chart','reading'].forEach(renderList)}
 
-function setDate(d){cur=d;cancelRvEdit();renderAllLists();fillLog()}
+function setDate(d){cur=d;rvOpen.add(d);cancelRvEdit();renderAllLists();fillLog()}
 function goToday(){cur=new Date().toISOString().slice(0,10);cancelRvEdit();document.getElementById('dateIn').value=cur;renderAllLists();fillLog()}
 function fillLog(){
   document.getElementById('dateIn').value=cur;
@@ -336,11 +343,13 @@ function fillLog(){
 }
 
 /* ---------- 多维复盘（六类 + 全部） ---------- */
-let rvType='life', editingRv=null;
+let rvType='life', editingRv=null, editingRvDate=null, rvOpen=new Set();
 function setRvSubmit(){
   var el=document.getElementById('rvSubmit');
   if(editingRv){ el.textContent='保存修改'; return; }
   if(rvType==='idea'){ el.textContent='记一条想法'; return; }
+  if(rvType==='think'){ el.textContent='记一条思考'; return; }
+  if(rvType==='summary'){ el.textContent='记一日总结'; return; }
   el.textContent='+ 记一条复盘';
 }
 function applyRvTypeUI(){
@@ -374,20 +383,45 @@ function addReview(){
     return;
   }
   clearRvInvalid();
-  const revs=day().reviews||(day().reviews=[]);
+  const revs = editingRv
+    ? ((state.days[editingRvDate]||(state.days[editingRvDate]={done:{chart:{},must:{},reading:{}},reviews:[]})).reviews)
+    : (day().reviews||(day().reviews=[]));
   if(editingRv){
     const r=revs.find(x=>x.id===editingRv);
     if(r){ r.type=rvType; r.what=what; r.good=good; r.bad=bad; r.ts=Date.now(); }
-    editingRv=null; setRvSubmit();
+    editingRv=null; editingRvDate=null; setRvSubmit();
   }else{
     revs.unshift({id:'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),type:rvType,what,good,bad,ts:Date.now()});
   }
   rvReset();
   save(); renderReviews();
 }
+function findReview(id){
+  for(const d in (state.days||{})){
+    const arr=state.days[d].reviews||[];
+    if(arr.some(x=>x.id===id)) return d;
+  }
+  return null;
+}
+function rvItemHtml(r,date){
+  const label=REVIEW_TYPES[r.type]||'生活';
+  const hasGB=(r.good||r.bad);
+  let body=esc(r.what||'');
+  if(hasGB){
+    if(r.good) body+='<div class="rv-sub">✔ '+esc(r.good)+'</div>';
+    if(r.bad) body+='<div class="rv-sub bad">✘ '+esc(r.bad)+'</div>';
+  }
+  const t=new Date(r.ts||Date.now());
+  const hh=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
+  return `<div class="rv-item">
+      <div class="rv-head"><span class="tag">${label}</span><span class="rv-meta">${date} ${hh}</span>
+        <span class="rv-acts"><button class="mini" onclick="editReview('${r.id}')">编辑</button><button class="mini del" onclick="delReview('${r.id}')">删除</button></span></div>
+      <div class="rv-body">${body}</div></div>`;
+}
 function editReview(id){
-  const r=(day().reviews||[]).find(x=>x.id===id); if(!r) return;
-  editingRv=id; rvType=r.type; applyRvTypeUI();
+  const date=findReview(id); if(!date) return;
+  const r=(state.days[date].reviews||[]).find(x=>x.id===id);
+  editingRv=id; editingRvDate=date; rvType=r.type; applyRvTypeUI();
   const single=['idea','think','summary'].includes(r.type);
   if(single){ document.getElementById('rvSingleText').value=r.what||''; }
   else { document.getElementById('rvWhat').value=r.what||''; document.getElementById('rvGood').value=r.good||''; document.getElementById('rvBad').value=r.bad||''; }
@@ -395,33 +429,43 @@ function editReview(id){
   const anchor=document.getElementById('rvForm');
   if(anchor&&anchor.scrollIntoView){ try{anchor.scrollIntoView({block:'start',behavior:'smooth'});}catch(e){} }
 }
-function cancelRvEdit(){ if(!editingRv) return; editingRv=null; rvReset(); setRvSubmit(); }
+function cancelRvEdit(){ if(!editingRv) return; editingRv=null; editingRvDate=null; rvReset(); setRvSubmit(); }
 function renderReviews(){
-  const all=(day().reviews||[]).slice().sort((a,b)=>b.ts-a.ts);
-  const revs = rvType==='all' ? all : all.filter(r=>r.type===rvType);
+  const days=state.days||{};
+  const dateKeys=Object.keys(days).filter(d=>(days[d].reviews||[]).length).sort().reverse();
   const box=document.getElementById('rvList');
-  if(!revs.length){ box.innerHTML='<div class="rv-empty">'+(rvType==='all'?'今天还没有复盘记录。':'这个分类下还没有复盘记录。')+'</div>'; return; }
   let h='';
-  revs.forEach(r=>{
-    const label=REVIEW_TYPES[r.type]||'生活';
-    const hasGB=(r.good||r.bad);
-    let body=esc(r.what||'');
-    if(hasGB){
-      if(r.good) body+='<div class="rv-sub">✔ '+esc(r.good)+'</div>';
-      if(r.bad) body+='<div class="rv-sub bad">✘ '+esc(r.bad)+'</div>';
-    }
-    const t=new Date(r.ts||Date.now());
-    const hh=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
-    h+=`<div class="rv-item">
-      <div class="rv-head"><span class="tag">${label}</span><span class="rv-meta">${cur} ${hh}</span>
-        <span class="rv-acts"><button class="mini" onclick="editReview('${r.id}')">编辑</button><button class="mini del" onclick="delReview('${r.id}')">删除</button></span></div>
-      <div class="rv-body">${body}</div></div>`;
+  dateKeys.forEach(d=>{
+    const all=(days[d].reviews||[]).slice().sort((a,b)=>b.ts-a.ts);
+    const revs = rvType==='all' ? all : all.filter(r=>r.type===rvType);
+    if(!revs.length) return;
+    const open = rvOpen.has(d);
+    h+=`<div class="rv-group">
+      <div class="rv-group-head" onclick="toggleRvGroup('${d}')">
+        <span class="rv-group-arrow">${open?'▾':'▸'}</span>
+        <span class="rv-group-date">${d}</span>
+        <span class="rv-group-cnt">${revs.length}</span>
+      </div>
+      <div class="rv-group-body" id="rvg-${d}" style="display:${open?'block':'none'}">
+        ${revs.map(r=>rvItemHtml(r,d)).join('')}
+      </div></div>`;
   });
+  if(!h){ box.innerHTML='<div class="rv-empty">'+(rvType==='all'?'还没有任何复盘记录。':'该分类下还没有复盘记录。')+'</div>'; updateRvTagCounts(); return; }
   box.innerHTML=h;
   updateRvTagCounts();
 }
+function toggleRvGroup(date){
+  if(rvOpen.has(date)) rvOpen.delete(date); else rvOpen.add(date);
+  const el=document.getElementById('rvg-'+date);
+  if(!el) return;
+  const open=rvOpen.has(date);
+  el.style.display=open?'block':'none';
+  const arrow=el.parentNode.querySelector('.rv-group-arrow');
+  if(arrow) arrow.textContent=open?'▾':'▸';
+}
 function updateRvTagCounts(){
-  var revs=day().reviews||[];
+  var revs=[];
+  for(var d in (state.days||{})){ revs=revs.concat(state.days[d].reviews||[]); }
   var counts={all:revs.length};
   for(var k in REVIEW_TYPES)counts[k]=0;
   revs.forEach(function(r){if(counts[r.type]!==undefined)counts[r.type]++;});
@@ -432,7 +476,14 @@ function updateRvTagCounts(){
     t.innerHTML = base + (c ? '<span class="cnt">'+c+'</span>' : '');
   });
 }
-function delReview(id){ if(confirm('删除这条复盘？')){ const revs=day().reviews||[]; day().reviews=revs.filter(x=>x.id!==id); if(editingRv===id){editingRv=null;rvReset();setRvSubmit();} save(); renderReviews(); } }
+function delReview(id){
+  const date=findReview(id); if(!date) return;
+  if(confirm('删除这条复盘？')){
+    state.days[date].reviews=(state.days[date].reviews||[]).filter(x=>x.id!==id);
+    if(editingRv===id){editingRv=null;rvReset();setRvSubmit();}
+    save(); renderReviews();
+  }
+}
 document.querySelectorAll('.rv-tag').forEach(t=>t.addEventListener('click',()=>{ if(editingRv){editingRv=null;rvReset();setRvSubmit();} rvType=t.dataset.type; applyRvTypeUI(); renderReviews(); }));
 
 function showTab(name){
@@ -504,6 +555,7 @@ document.getElementById('syncClearToken').onclick=()=>{if(window.confirm('清除
 
 /* ---------- 初始化 ---------- */
 document.getElementById('dateIn').value=cur;
+rvOpen.add(cur);
 applyRvTypeUI();
 renderAllLists();fillLog();
 if(sync.enabled&&sync.token){syncStatus('同步中…');syncNow();startAutoPull();}
