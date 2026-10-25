@@ -104,6 +104,11 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 .rv-group-date{flex:1;font-size:14.5px;font-weight:600;color:var(--ink)}
 .rv-group-cnt{font-size:12.5px;color:var(--sub);background:#f0e3d8;border-radius:20px;padding:1px 9px;flex:none}
 .rv-group-body{padding:2px 12px 12px}
+.mini.ok{border-color:#bfd9bf;color:#2f7d32;background:#f3faf3}
+.rv-done-badge{color:#2f7d32;font-size:12.5px;font-weight:600;margin-left:6px}
+.rv-group.rv-done{border-color:#cfe0cf}
+.rv-item.done .rv-body{color:var(--sub)}
+.rv-item.done .tag{background:#e6f0e6;color:#2f7d32}
 .rv-toolbar{display:flex;align-items:center;gap:10px;margin:16px 0 4px;flex-wrap:wrap}
 .rv-tool{border:1px solid var(--line);background:var(--card);color:var(--sub);border-radius:12px;padding:7px 15px;font-size:13.5px;cursor:pointer;font-family:inherit;font-weight:600}
 .rv-tool:hover{border-color:var(--accent);color:var(--accent)}
@@ -467,10 +472,28 @@ function rvItemHtml(r,date){
   }
   const t=new Date(r.ts||Date.now());
   const hh=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
-  return `<div class="rv-item">
-      <div class="rv-head"><span class="tag">${label}</span><span class="rv-meta">${date} ${hh}</span>
-        <span class="rv-acts"><button class="mini" onclick="editReview('${r.id}')">编辑</button><button class="mini del" onclick="delReview('${r.id}')">删除</button></span></div>
+  let acts;
+  if(r.type==='idea' && r.done){
+    acts=`<button class="mini" onclick="editReview('${r.id}')">编辑</button><button class="mini" onclick="undoIdea('${r.id}')">撤销</button><button class="mini del" onclick="delReview('${r.id}')">删除</button>`;
+  } else if(r.type==='idea'){
+    acts=`<button class="mini" onclick="editReview('${r.id}')">编辑</button><button class="mini ok" onclick="markIdeaDone('${r.id}')">落实</button>`;
+  } else {
+    acts=`<button class="mini" onclick="editReview('${r.id}')">编辑</button><button class="mini del" onclick="delReview('${r.id}')">删除</button>`;
+  }
+  const doneCls=(r.type==='idea'&&r.done)?' done':'';
+  const badge=(r.type==='idea'&&r.done)?'<span class="rv-done-badge">✓ 已落实</span>':'';
+  return `<div class="rv-item${doneCls}">
+      <div class="rv-head"><span class="tag">${label}</span>${badge}<span class="rv-meta">${date} ${hh}</span>
+        <span class="rv-acts">${acts}</span></div>
       <div class="rv-body">${body}</div></div>`;
+}
+function markIdeaDone(id){ const date=findReview(id); if(!date) return; const r=(state.days[date].reviews||[]).find(x=>x.id===id); if(r){ r.done=true; save(); renderReviews(); } }
+function undoIdea(id){ const date=findReview(id); if(!date) return; const r=(state.days[date].reviews||[]).find(x=>x.id===id); if(r){ r.done=false; save(); renderReviews(); } }
+function hasDoneIdeas(){
+  if(rvType!=='idea') return false;
+  const days=state.days||{};
+  for(const d in days){ if((days[d].reviews||[]).some(r=>r.type==='idea'&&r.done)) return true; }
+  return false;
 }
 function editReview(id){
   const date=findReview(id); if(!date) return;
@@ -491,12 +514,18 @@ function renderReviews(){
     : Object.keys(days).sort().reverse();
   const box=document.getElementById('rvList');
   let h='';
+  const doneIdeas=[];
   dateKeys.forEach(d=>{
     const all=(days[d].reviews||[]).slice().sort((a,b)=>b.ts-a.ts);
-    const revs = rvType==='all' ? all : all.filter(r=>r.type===rvType);
+    let revs = rvType==='all' ? all : all.filter(r=>r.type===rvType);
     if(rvOnlyContent && !revs.length) return;
+    if(rvType==='idea'){
+      (revs.filter(r=>r.done)).forEach(r=>doneIdeas.push({r,date:d}));
+      revs=revs.filter(r=>!r.done);
+      if(!revs.length) return;
+    }
     const open = rvOpen.has(d);
-    const cnt = rvType==='all' ? all.length : revs.length;
+    const cnt = revs.length;
     h+=`<div class="rv-group">
       <div class="rv-group-head" onclick="toggleRvGroup('${d}')">
         <span class="rv-group-arrow">${open?'▾':'▸'}</span>
@@ -504,9 +533,21 @@ function renderReviews(){
         <span class="rv-group-cnt">${cnt}</span>
       </div>
       <div class="rv-group-body" id="rvg-${d}" style="display:${open?'block':'none'}">
-        ${revs.length ? revs.map(r=>rvItemHtml(r,d)).join('') : '<div class="rv-empty" style="padding:8px 4px">（暂无复盘）</div>'}
+        ${revs.map(r=>rvItemHtml(r,d)).join('')}
       </div></div>`;
   });
+  if(rvType==='idea' && doneIdeas.length){
+    const open=rvOpen.has('__done__');
+    h+=`<div class="rv-group rv-done">
+      <div class="rv-group-head" onclick="toggleRvGroup('__done__')">
+        <span class="rv-group-arrow">${open?'▾':'▸'}</span>
+        <span class="rv-group-date">已落实</span>
+        <span class="rv-group-cnt">${doneIdeas.length}</span>
+      </div>
+      <div class="rv-group-body" id="rvg-__done__" style="display:${open?'block':'none'}">
+        ${doneIdeas.map(o=>rvItemHtml(o.r,o.date)).join('')}
+      </div></div>`;
+  }
   if(!h){ box.innerHTML='<div class="rv-empty">'+(rvType==='all'?'还没有任何复盘记录。':'该分类下还没有复盘记录。')+'</div>'; updateRvTagCounts(); updateRvToggleAllLabel(); return; }
   box.innerHTML=h;
   updateRvTagCounts();
@@ -517,9 +558,11 @@ function toggleRvAll(){
   const dateKeys = rvOnlyContent
     ? Object.keys(days).filter(d=>(days[d].reviews||[]).length)
     : Object.keys(days);
-  if(!dateKeys.length) return;
-  const allOpen = dateKeys.every(d=>rvOpen.has(d));
-  dateKeys.forEach(d=>{ if(allOpen) rvOpen.delete(d); else rvOpen.add(d); });
+  const groups=dateKeys.slice();
+  if(hasDoneIdeas()) groups.push('__done__');
+  if(!groups.length) return;
+  const allOpen = groups.every(d=>rvOpen.has(d));
+  groups.forEach(d=>{ if(allOpen) rvOpen.delete(d); else rvOpen.add(d); });
   renderReviews();
 }
 function updateRvToggleAllLabel(){
@@ -528,7 +571,9 @@ function updateRvToggleAllLabel(){
   const dateKeys = rvOnlyContent
     ? Object.keys(days).filter(d=>(days[d].reviews||[]).length)
     : Object.keys(days);
-  const allOpen = dateKeys.length>0 && dateKeys.every(d=>rvOpen.has(d));
+  const groups=dateKeys.slice();
+  if(hasDoneIdeas()) groups.push('__done__');
+  const allOpen = groups.length>0 && groups.every(d=>rvOpen.has(d));
   btn.textContent = allOpen ? '收起全部' : '展开全部';
 }
 function setRvOnlyContent(v){
