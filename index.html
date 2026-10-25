@@ -77,11 +77,11 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
 .rv-tag{border:1px solid var(--line);background:#fffdf9;color:var(--sub);border-radius:20px;padding:5px 13px;font-size:13px;cursor:pointer;font-family:inherit}
 .rv-tag.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
-.rv-item{position:relative;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:9px;font-size:13.5px;padding-right:62px;background:#fffdf9}
+.rv-item{position:relative;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:9px;font-size:13.5px;padding-right:112px;background:#fffdf9}
 .rv-item .tag{margin-right:8px}
+.rv-item .rv-acts{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:5px}
 .rv-sub{margin-top:3px;color:var(--sub);font-size:12.5px}
 .rv-sub.bad{color:var(--accent)}
-.rv-item .mini{position:absolute;right:8px;top:9px}
 .rv-empty{color:var(--sub);font-size:13px;padding:6px 0}
 
 .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;background:#f0e3d8;color:var(--accent)}
@@ -144,6 +144,7 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
     <div class="card">
       <h2>多维复盘（六类）</h2>
       <div class="rv-tags">
+        <span class="rv-tag" data-type="all">全部</span>
         <span class="rv-tag active" data-type="life">生活</span>
         <span class="rv-tag" data-type="trade">交易</span>
         <span class="rv-tag" data-type="study">学习</span>
@@ -151,17 +152,19 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
         <span class="rv-tag" data-type="think">思考</span>
         <span class="rv-tag" data-type="summary">一日总结</span>
       </div>
-      <div id="rvNormal">
-        <div class="field"><label>这一段做了什么</label><textarea id="rvWhat" rows="2" placeholder="例如：完成了早餐、看了 PA 课程第 3 集"></textarea></div>
-        <div class="field"><label>做对了什么</label><textarea id="rvGood" rows="2" placeholder="提炼一个可复用的正确动作"></textarea></div>
-        <div class="field"><label>哪里可以更好</label><textarea id="rvBad" rows="2" placeholder="记录失误、情绪或下次要避开的坑"></textarea></div>
-      </div>
-      <div id="rvSingle" style="display:none">
-        <div class="field"><label id="rvSingleLabel">内容</label><textarea id="rvSingleText" rows="4" placeholder="写下你的复盘…"></textarea></div>
-      </div>
-      <div class="btn-row">
-        <button class="btn warn" onclick="rvReset()">清空</button>
-        <button class="btn" style="border-color:var(--accent);color:var(--accent)" onclick="addReview()">+ 记一条复盘</button>
+      <div id="rvForm">
+        <div id="rvNormal">
+          <div class="field"><label>这一段做了什么</label><textarea id="rvWhat" rows="2" placeholder="例如：完成了早餐、看了 PA 课程第 3 集"></textarea></div>
+          <div class="field"><label>做对了什么</label><textarea id="rvGood" rows="2" placeholder="提炼一个可复用的正确动作"></textarea></div>
+          <div class="field"><label>哪里可以更好</label><textarea id="rvBad" rows="2" placeholder="记录失误、情绪或下次要避开的坑"></textarea></div>
+        </div>
+        <div id="rvSingle" style="display:none">
+          <div class="field"><label id="rvSingleLabel">内容</label><textarea id="rvSingleText" rows="4" placeholder="写下你的复盘…"></textarea></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn warn" onclick="rvReset()">清空</button>
+          <button class="btn" id="rvSubmit" style="border-color:var(--accent);color:var(--accent)" onclick="addReview()">+ 记一条复盘</button>
+        </div>
       </div>
       <div id="rvList" style="margin-top:14px"></div>
     </div>
@@ -319,17 +322,20 @@ function confirmEditor(){
 
 function renderAllLists(){['must','chart','reading'].forEach(renderList)}
 
-function setDate(d){cur=d;renderAllLists();fillLog()}
-function goToday(){cur=new Date().toISOString().slice(0,10);document.getElementById('dateIn').value=cur;renderAllLists();fillLog()}
+function setDate(d){cur=d;cancelRvEdit();renderAllLists();fillLog()}
+function goToday(){cur=new Date().toISOString().slice(0,10);cancelRvEdit();document.getElementById('dateIn').value=cur;renderAllLists();fillLog()}
 function fillLog(){
   document.getElementById('dateIn').value=cur;
   renderReviews();
 }
 
-/* ---------- 多维复盘（六类） ---------- */
-let rvType='life';
+/* ---------- 多维复盘（六类 + 全部） ---------- */
+let rvType='life', editingRv=null;
+function setRvSubmit(){ document.getElementById('rvSubmit').textContent = editingRv ? '保存修改' : '+ 记一条复盘'; }
 function applyRvTypeUI(){
-  const single=['idea','think','summary'].includes(rvType);
+  const isAll=rvType==='all';
+  const single=!isAll && ['idea','think','summary'].includes(rvType);
+  document.getElementById('rvForm').style.display=isAll?'none':'block';
   document.getElementById('rvNormal').style.display=single?'none':'block';
   document.getElementById('rvSingle').style.display=single?'block':'none';
   if(single){
@@ -346,14 +352,32 @@ function addReview(){
   else { what=document.getElementById('rvWhat').value.trim(); good=document.getElementById('rvGood').value.trim(); bad=document.getElementById('rvBad').value.trim(); }
   if(!what) return;
   const revs=day().reviews||(day().reviews=[]);
-  revs.unshift({id:'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),type:rvType,what,good,bad,ts:Date.now()});
+  if(editingRv){
+    const r=revs.find(x=>x.id===editingRv);
+    if(r){ r.type=rvType; r.what=what; r.good=good; r.bad=bad; r.ts=Date.now(); }
+    editingRv=null; setRvSubmit();
+  }else{
+    revs.unshift({id:'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),type:rvType,what,good,bad,ts:Date.now()});
+  }
   rvReset();
   save(); renderReviews();
 }
+function editReview(id){
+  const r=(day().reviews||[]).find(x=>x.id===id); if(!r) return;
+  editingRv=id; rvType=r.type; applyRvTypeUI();
+  const single=['idea','think','summary'].includes(r.type);
+  if(single){ document.getElementById('rvSingleText').value=r.what||''; }
+  else { document.getElementById('rvWhat').value=r.what||''; document.getElementById('rvGood').value=r.good||''; document.getElementById('rvBad').value=r.bad||''; }
+  setRvSubmit();
+  const anchor=document.getElementById('rvForm');
+  if(anchor&&anchor.scrollIntoView){ try{anchor.scrollIntoView({block:'start',behavior:'smooth'});}catch(e){} }
+}
+function cancelRvEdit(){ if(!editingRv) return; editingRv=null; rvReset(); setRvSubmit(); }
 function renderReviews(){
-  const revs=(day().reviews||[]).slice().sort((a,b)=>b.ts-a.ts);
+  const all=(day().reviews||[]).slice().sort((a,b)=>b.ts-a.ts);
+  const revs = rvType==='all' ? all : all.filter(r=>r.type===rvType);
   const box=document.getElementById('rvList');
-  if(!revs.length){ box.innerHTML='<div class="rv-empty">还没有复盘记录，选一个类型记一条。</div>'; return; }
+  if(!revs.length){ box.innerHTML='<div class="rv-empty">'+(rvType==='all'?'今天还没有复盘记录。':'这个分类下还没有复盘记录。')+'</div>'; return; }
   let h='';
   revs.forEach(r=>{
     const label=REVIEW_TYPES[r.type]||'生活';
@@ -363,12 +387,12 @@ function renderReviews(){
       if(r.good) body+='<div class="rv-sub">✔ '+esc(r.good)+'</div>';
       if(r.bad) body+='<div class="rv-sub bad">✘ '+esc(r.bad)+'</div>';
     }
-    h+=`<div class="rv-item"><span class="tag">${label}</span>${body}<button class="mini del" onclick="delReview('${r.id}')">删除</button></div>`;
+    h+=`<div class="rv-item"><span class="tag">${label}</span>${body}<span class="rv-acts"><button class="mini" onclick="editReview('${r.id}')">编辑</button><button class="mini del" onclick="delReview('${r.id}')">删除</button></span></div>`;
   });
   box.innerHTML=h;
 }
-function delReview(id){ if(confirm('删除这条复盘？')){ const revs=day().reviews||[]; day().reviews=revs.filter(x=>x.id!==id); save(); renderReviews(); } }
-document.querySelectorAll('.rv-tag').forEach(t=>t.addEventListener('click',()=>{rvType=t.dataset.type;applyRvTypeUI();}));
+function delReview(id){ if(confirm('删除这条复盘？')){ const revs=day().reviews||[]; day().reviews=revs.filter(x=>x.id!==id); if(editingRv===id){editingRv=null;rvReset();setRvSubmit();} save(); renderReviews(); } }
+document.querySelectorAll('.rv-tag').forEach(t=>t.addEventListener('click',()=>{ if(editingRv){editingRv=null;rvReset();setRvSubmit();} rvType=t.dataset.type; applyRvTypeUI(); renderReviews(); }));
 
 function showTab(name){
   activeTab=name;
