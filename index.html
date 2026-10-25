@@ -337,7 +337,12 @@ function fillLog(){
 
 /* ---------- 多维复盘（六类 + 全部） ---------- */
 let rvType='life', editingRv=null;
-function setRvSubmit(){ document.getElementById('rvSubmit').textContent = editingRv ? '保存修改' : '+ 记一条复盘'; }
+function setRvSubmit(){
+  var el=document.getElementById('rvSubmit');
+  if(editingRv){ el.textContent='保存修改'; return; }
+  if(rvType==='idea'){ el.textContent='记一条想法'; return; }
+  el.textContent='+ 记一条复盘';
+}
 function applyRvTypeUI(){
   const isAll=rvType==='all';
   const single=!isAll && ['idea','think','summary'].includes(rvType);
@@ -349,6 +354,7 @@ function applyRvTypeUI(){
     document.getElementById('rvSingleText').placeholder = rvType==='summary'?'用一段话总结今天：整体做了什么、状态如何、最关键的收获或教训。' : (rvType==='idea'?'记下突然冒出的点子、灵感或想法':'记录一段思考、推演或感悟：触发是什么、怎么想的、得出什么结论。');
   }
   document.querySelectorAll('.rv-tag').forEach(t=>t.classList.toggle('active',t.dataset.type===rvType));
+  if(!editingRv) setRvSubmit();
   clearRvInvalid();
 }
 function rvReset(){document.getElementById('rvWhat').value='';document.getElementById('rvGood').value='';document.getElementById('rvBad').value='';document.getElementById('rvSingleText').value='';clearRvInvalid();}
@@ -358,8 +364,9 @@ function addReview(){
   let what, good='', bad='';
   if(single){ what=document.getElementById('rvSingleText').value.trim(); }
   else { what=document.getElementById('rvWhat').value.trim(); good=document.getElementById('rvGood').value.trim(); bad=document.getElementById('rvBad').value.trim(); }
-  if(!what){
-    var msg = single ? '请先填写内容再保存' : '请先填写「这一段做了什么」才能保存';
+  var hasContent = single ? !!what : (what || good || bad);
+  if(!hasContent){
+    var msg = single ? '请先填写内容再保存' : '请至少填写一段内容再保存';
     var hint=document.getElementById('rvHint'); if(hint)hint.textContent=msg;
     var fld = single ? document.getElementById('rvSingleText') : document.getElementById('rvWhat');
     fld.style.borderColor='var(--accent)';
