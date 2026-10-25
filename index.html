@@ -296,7 +296,7 @@ function save(){localStorage.setItem(KEY,JSON.stringify(state));schedulePush();}
 function esc(s){return (s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
 function escAttr(s){return esc(s).replace(/"/g,"&quot;")}
 
-let doneOpen={must:true,chart:true,reading:true};
+let doneOpen={must:false,chart:false,reading:false};
 function itemHtml(g,it,checked){
   return `<li class="${checked?'done':''}">
     <input type="checkbox" ${checked?'checked':''} onchange="toggle('${g}','${it.id}',this.checked)">
