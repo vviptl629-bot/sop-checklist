@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#c1654a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>每日 SOP 核查表</title>
+<style>
+:root{
+  --bg:#f3ece3; --card:#fbf7f1; --ink:#3b2f2a; --sub:#8a7a6d;
+  --accent:#c1654a; --accent2:#7d8c6a; --ok:#6f8f4e; --line:#e6dccf;
+  --dock-h:62px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:"Iowan Old Style","Palatino Linotype",Georgia,"Songti SC","PingFang SC","Microsoft YaHei",serif;line-height:1.6;
+  padding-bottom:calc(var(--dock-h) + env(safe-area-inset-bottom,0px) + 12px)}
+.wrap{max-width:860px;margin:0 auto;padding:18px 16px 8px}
+header h1{font-size:21px;margin:0 0 2px;color:var(--accent)}
+header p{margin:0;color:var(--sub);font-size:12.5px}
+.datebar{display:flex;align-items:center;gap:10px;margin:14px 0 6px;flex-wrap:wrap}
+.datebar input[type=date]{border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:14px;background:var(--card);color:var(--ink);font-family:inherit}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--sub);border-radius:12px;padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.warn{color:var(--accent);border-color:#e7c4b8}
+.btn.warn:hover{background:#f6e7e0}
+
+.panel{display:none;animation:fade .18s ease}
+.panel.show{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:16px}
+.card h2{font-size:17px;margin:0 0 10px;color:var(--accent);display:flex;align-items:center;gap:8px}
+.card h2::before{content:"";width:5px;height:17px;background:var(--accent);border-radius:3px}
+.prog{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;color:var(--sub)}
+.prog .track{flex:1;height:7px;background:var(--line);border-radius:6px;overflow:hidden}
+.prog .bar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .25s}
+ul.clist{list-style:none;margin:0;padding:0}
+ul.clist li{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px dotted var(--line)}
+ul.clist li:last-child{border-bottom:none}
+ul.clist li.editing{align-items:center;flex-wrap:wrap}
+ul.clist input[type=checkbox]{margin-top:4px;width:19px;height:19px;accent-color:var(--accent);flex:none}
+ul.clist label{flex:1;font-size:14.5px;cursor:pointer;min-width:0;word-break:break-word}
+ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
+.acts{display:flex;gap:6px;flex:none}
+.mini{border:1px solid var(--line);background:#fffdf9;color:var(--sub);border-radius:9px;padding:4px 10px;font-size:12.5px;cursor:pointer;font-family:inherit}
+.mini:hover{border-color:var(--accent);color:var(--accent)}
+.mini.del:hover{border-color:var(--accent);color:var(--accent);background:#f6e7e0}
+.mini.ghost{color:var(--sub)}
+.edit-in{flex:1;min-width:160px;border:1px solid var(--accent);border-radius:9px;padding:7px 9px;font-size:14px;font-family:inherit;background:#fff;color:var(--ink)}
+.addrow{display:flex;gap:8px;margin-top:12px}
+.addrow input{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:14px;font-family:inherit;background:#fffdf9;color:var(--ink)}
+
+.loggrid{display:flex;flex-direction:column;gap:14px}
+.field label{display:block;font-size:13px;color:var(--accent2);margin-bottom:5px;font-weight:600}
+.field textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px;font-size:14px;font-family:inherit;resize:vertical;background:#fffdf9;color:var(--ink)}
+.field textarea:focus{outline:none;border-color:var(--accent)}
+
+.wtab{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.wtab th,.wtab td{border:1px solid var(--line);padding:8px;vertical-align:top;text-align:left}
+.wtab th{background:#f0e9df;color:var(--sub);font-weight:600}
+.wtab td{white-space:pre-wrap;word-break:break-word}
+.tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;background:#f0e3d8;color:var(--accent)}
+
+.setting-row{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.setting-row label{font-size:13px;color:var(--accent2);font-weight:600}
+.setting-row input,.setting-row textarea{border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px;font-family:inherit;background:#fffdf9;color:var(--ink)}
+.setting-row .hint{font-size:12px;color:var(--sub)}
+.stub{opacity:.6;pointer-events:none}
+.foot{margin-top:10px;font-size:12px;color:var(--sub)}
+
+/* Dock */
+.dock{position:fixed;left:0;right:0;bottom:0;height:calc(var(--dock-h) + env(safe-area-inset-bottom,0px));
+  background:rgba(251,247,241,.96);backdrop-filter:blur(8px);border-top:1px solid var(--line);
+  display:flex;padding-bottom:env(safe-area-inset-bottom,0px);z-index:50}
+.dock-btn{flex:1;border:none;background:transparent;color:var(--sub);font-family:inherit;font-size:12.5px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;position:relative;padding:6px 2px}
+.dock-btn .ic{font-size:18px;line-height:1}
+.dock-btn.active{color:var(--accent)}
+.dock-btn.active::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:26px;height:3px;border-radius:3px;background:var(--accent)}
+
+@media(max-width:560px){
+  header h1{font-size:19px}
+  .wrap{padding:14px 12px 4px}
+  ul.clist label{font-size:15px}
+  .dock-btn{font-size:11.5px}
+  .dock-btn .ic{font-size:17px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>每日 SOP 核查表</h1>
+    <p>图表复盘 · 每日必做 · 读书SOP · 每日记录 · 周复盘</p>
+  </header>
+
+  <div class="datebar">
+    <span style="font-size:13px;color:var(--sub)">当前日期</span>
+    <input type="date" id="dateIn" onchange="setDate(this.value)">
+    <button class="btn" onclick="goToday()">回到今天</button>
+  </div>
+
+  <!-- 积累 -->
+  <section class="panel show" id="tab-must"></section>
+  <!-- 交易 -->
+  <section class="panel" id="tab-chart"></section>
+  <!-- 读书 -->
+  <section class="panel" id="tab-reading"></section>
+  <!-- 每日记录 -->
+  <section class="panel" id="tab-log">
+    <div class="card">
+      <h2>每日记录（周复盘素材）</h2>
+      <div class="loggrid">
+        <div class="field"><label>今天做了哪些事</label><textarea id="log" rows="5" placeholder="按时间或板块记录今天的实际动作…"></textarea></div>
+        <div class="field"><label>卡点 / 问题</label><textarea id="problem" rows="4" placeholder="哪里卡住了？哪里没按计划？"></textarea></div>
+        <div class="field"><label>明日改进</label><textarea id="improve" rows="4" placeholder="明天具体改什么？"></textarea></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>周复盘视图（最近 7 天）</h2>
+      <div class="datebar" style="margin:4px 0 12px">
+        <span style="font-size:13px;color:var(--sub)">周截止日</span>
+        <input type="date" id="weekEnd" onchange="renderWeek()">
+        <button class="btn" onclick="document.getElementById('weekEnd').value=cur;renderWeek()">最近7天</button>
+      </div>
+      <div id="weekOut"></div>
+    </div>
+  </section>
+  <!-- 设置 -->
+  <section class="panel" id="tab-settings">
+    <div class="card">
+      <h2>云端同步（待部署）</h2>
+      <div class="setting-row stub">
+        <label>GitHub Token</label>
+        <input type="password" placeholder="正式部署时填入（账号 vviptl629-bot）">
+        <span class="hint">将与你的工作台 / 学习台使用同一套 Gist 同步方案。</span>
+      </div>
+      <div class="setting-row stub">
+        <label>Gist ID</label>
+        <input placeholder="正式部署时自动生成">
+      </div>
+      <div class="setting-row stub">
+        <button class="btn" disabled>测试连接</button>
+      </div>
+      <div class="foot">说明：当前为样式稿，数据仅存本机浏览器。确认部署后会接入 GitHub Gist 跨设备同步（45s 拉取 + 防抖推送），与现有项目一致。</div>
+    </div>
+    <div class="card">
+      <h2>数据管理</h2>
+      <div class="setting-row">
+        <button class="btn" onclick="exportJSON()">导出备份（JSON）</button>
+        <span class="hint">部署云端前可先本地备份 / 迁移。</span>
+      </div>
+      <div class="setting-row">
+        <label>导入备份（JSON）</label>
+        <input type="file" id="importFile" accept="application/json" onchange="importJSON(this)">
+      </div>
+      <div class="setting-row">
+        <button class="btn warn" onclick="resetAll()">清空全部数据</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<nav class="dock" id="dock">
+  <button class="dock-btn active" data-tab="must"><span class="ic">◆</span>积累</button>
+  <button class="dock-btn" data-tab="chart"><span class="ic">▮</span>交易</button>
+  <button class="dock-btn" data-tab="reading"><span class="ic">▤</span>读书</button>
+  <button class="dock-btn" data-tab="log"><span class="ic">✎</span>每日记录</button>
+  <button class="dock-btn" data-tab="settings"><span class="ic">⚙</span>设置</button>
+</nav>
+
+<script>
+const KEY="sop_proto_C_v2";
+const DEFAULTS={
+  must:{title:"每日必做任务（积累）",items:[
+    "固定时间起床（不熬夜）",
+    "身体锻炼/拉伸 ≥20分钟",
+    "英语学习：赖世雄课程 + 原版书（弱读/连读）",
+    "图表复盘（见交易 Tab）",
+    "阅读推进（记录绝对页码）",
+    "人生母题访谈/写作（或既定创作）",
+    "填写当日复盘日志（每日记录 Tab）"
+  ]},
+  chart:{title:"每日图表复盘核查（交易）",items:[
+    "复盘当日主交易时段关键K线（开盘/欧盘/美盘）",
+    "标记≥3个关键信号bar/形态（pin bar、inside bar、趋势bar等）",
+    "图上标注：入场区、止损位、目标位",
+    "对照当日交易计划，核对是否按计划执行",
+    "记录每笔交易的R倍数与纪律遵守情况",
+    "截图归档当日图表（含标注）",
+    "写下1条今日价格行为观察/教训"
+  ]},
+  reading:{title:"读书SOP核查",items:[
+    "明确今日阅读书目与章节",
+    "设定目标：到达绝对页码 ___",
+    "无干扰专注阅读 ≥30分钟",
+    "高亮/批注关键句",
+    "记录「今日已到达绝对页码」：___",
+    "输出一句话总结/收获"
+  ]}
+};
+function uid(){return 'i'+Math.random().toString(36).slice(2,9)}
+function seed(){const L={};for(const g in DEFAULTS)L[g]={title:DEFAULTS[g].title,items:DEFAULTS[g].items.map(t=>({id:uid(),text:t}))};return L}
+
+let state={};
+try{state=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!state||!state.lists||!state.days){state={lists:seed(),days:{}}}
+
+let cur=new Date().toISOString().slice(0,10);
+let activeTab="must";
+let editingId=null;
+
+function day(){return state.days[cur]||(state.days[cur]={done:{chart:{},must:{},reading:{}},log:"",problem:"",improve:""})}
+function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function esc(s){return (s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
+function escAttr(s){return esc(s).replace(/"/g,"&quot;")}
+
+function renderList(g){
+  const panel=document.getElementById('tab-'+g);
+  const list=state.lists[g];
+  const done=day().done[g];
+  const n=list.items.length;
+  const dc=list.items.filter(it=>done[it.id]).length;
+  const pct=n?Math.round(dc/n*100):0;
+  let html=`<div class="card"><h2>${esc(list.title)}</h2>
+    <div class="prog"><div class="track"><div class="bar" style="width:${pct}%"></div></div><span>${dc}/${n}</span></div>
+    <ul class="clist">`;
+  list.items.forEach(it=>{
+    if(editingId===it.id){
+      html+=`<li class="editing"><input class="edit-in" id="edit-${it.id}" value="${escAttr(it.text)}">
+        <button class="mini" onclick="saveEdit('${g}','${it.id}')">保存</button>
+        <button class="mini ghost" onclick="cancelEdit()">取消</button></li>`;
+    }else{
+      const checked=!!done[it.id];
+      html+=`<li>
+        <input type="checkbox" ${checked?'checked':''} onchange="toggle('${g}','${it.id}',this.checked)">
+        <label>${esc(it.text)}</label>
+        <span class="acts">
+          <button class="mini" onclick="startEdit('${g}','${it.id}')">编辑</button>
+          <button class="mini del" onclick="delItem('${g}','${it.id}')">删除</button>
+        </span></li>`;
+    }
+  });
+  html+=`</ul><div class="addrow"><input id="add-${g}" placeholder="添加新项目…"><button class="mini" onclick="addItem('${g}')">添加</button></div></div>`;
+  panel.innerHTML=html;
+  if(editingId){
+    const e=document.getElementById('edit-'+editingId);
+    if(e){e.focus();e.select();
+      e.onkeydown=ev=>{if(ev.key==='Enter')saveEdit2(g,editingId);if(ev.key==='Escape')cancelEdit();};
+    }
+  }
+}
+function updateProg(g){
+  const panel=document.getElementById('tab-'+g);
+  const list=state.lists[g];const done=day().done[g];
+  const n=list.items.length;const dc=list.items.filter(it=>done[it.id]).length;
+  const pct=n?Math.round(dc/n*100):0;
+  const bar=panel.querySelector('.bar');if(bar)bar.style.width=pct+'%';
+  const sp=panel.querySelector('.prog span');if(sp)sp.textContent=dc+'/'+n;
+}
+function toggle(g,id,v){day().done[g][id]=v;save();updateProg(g)}
+function startEdit(g,id){editingId=id;renderList(g)}
+function cancelEdit(){editingId=null;if(['must','chart','reading'].includes(activeTab))renderList(activeTab)}
+function saveEdit(g,id){saveEdit2(g,id)}
+function saveEdit2(g,id){const el=document.getElementById('edit-'+id);if(el){const t=el.value.trim()||'未命名';const it=state.lists[g].items.find(x=>x.id===id);if(it)it.text=t;save();}editingId=null;renderList(g)}
+function delItem(g,id){if(confirm('确定删除该项目？')){state.lists[g].items=state.lists[g].items.filter(x=>x.id!==id);for(const d in state.days)delete state.days[d].done[g][id];save();renderList(g);}}
+function addItem(g){const el=document.getElementById('add-'+g);const t=(el.value||'').trim();if(!t)return;state.lists[g].items.push({id:uid(),text:t});el.value='';save();renderList(g)}
+
+function renderAllLists(){['must','chart','reading'].forEach(renderList)}
+
+function setDate(d){cur=d;renderAllLists();fillLog();renderWeek()}
+function goToday(){cur=new Date().toISOString().slice(0,10);document.getElementById('dateIn').value=cur;renderAllLists();fillLog();renderWeek()}
+function fillLog(){
+  const dd=day();
+  document.getElementById('log').value=dd.log||"";
+  document.getElementById('problem').value=dd.problem||"";
+  document.getElementById('improve').value=dd.improve||"";
+  document.getElementById('dateIn').value=cur;
+}
+['log','problem','improve'].forEach(k=>{
+  document.addEventListener('input',e=>{if(e.target.id===k){day()[k]=e.target.value;save()}});
+});
+function renderWeek(){
+  const end=document.getElementById('weekEnd').value||cur;
+  const days=[];
+  for(let i=6;i>=0;i--){const d=new Date(end);d.setDate(d.getDate()-i);days.push(d.toISOString().slice(0,10))}
+  let html='<table class="wtab"><thead><tr><th style="width:80px">日期</th><th>做了什么</th><th>卡点/问题</th><th>明日改进</th><th style="width:60px">完成度</th></tr></thead><tbody>';
+  days.forEach(d=>{
+    const rec=state.days[d];
+    const lc=rec?rec.log||"":"",pc=rec?rec.problem||"":"",im=rec?rec.improve||"":"";
+    let tot=0,done=0;
+    for(const g of ['chart','must','reading']){state.lists[g].items.forEach(it=>{tot++;if(rec&&rec.done[g]&&rec.done[g][it.id])done++})}
+    const pct=tot?Math.round(done/tot*100):0;
+    html+=`<tr><td>${d.slice(5)}</td><td>${esc(lc)||"—"}</td><td>${esc(pc)||"—"}</td><td>${esc(im)||"—"}</td><td><span class="tag">${pct}%</span></td></tr>`;
+  });
+  html+="</tbody></table>";
+  document.getElementById('weekOut').innerHTML=html;
+}
+function showTab(name){
+  activeTab=name;editingId=null;
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
+  document.getElementById('tab-'+name).classList.add('show');
+  document.querySelectorAll('.dock-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+  if(['must','chart','reading'].includes(name))renderList(name);
+  if(name==='log'){fillLog();renderWeek()}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.getElementById('dock').addEventListener('click',e=>{const b=e.target.closest('.dock-btn');if(b)showTab(b.dataset.tab)});
+
+function exportJSON(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sop-backup-'+cur+'.json';a.click()}
+function importJSON(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(d&&d.lists&&d.days){state=d;save();renderAllLists();fillLog();renderWeek();alert('导入成功')}else alert('文件格式不正确')}catch(e){alert('解析失败')};input.value=''};r.readAsText(f)}
+function resetAll(){if(confirm('确定清空全部数据？此操作不可恢复。')){localStorage.removeItem(KEY);state={lists:seed(),days:{}};cur=new Date().toISOString().slice(0,10);document.getElementById('dateIn').value=cur;renderAllLists();fillLog();renderWeek()}}
+
+document.getElementById('dateIn').value=cur;
+document.getElementById('weekEnd').value=cur;
+renderAllLists();fillLog();renderWeek();
+</script>
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./'}).catch(function(e){console.log('SW register failed',e)})});}
+</script>
+</body>
+</html>
