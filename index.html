@@ -95,6 +95,11 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
 .rv-group-date{flex:1;font-size:14.5px;font-weight:600;color:var(--ink)}
 .rv-group-cnt{font-size:12.5px;color:var(--sub);background:#f0e3d8;border-radius:20px;padding:1px 9px;flex:none}
 .rv-group-body{padding:2px 12px 12px}
+.rv-toolbar{display:flex;align-items:center;gap:10px;margin:16px 0 4px;flex-wrap:wrap}
+.rv-tool{border:1px solid var(--line);background:var(--card);color:var(--sub);border-radius:12px;padding:7px 15px;font-size:13.5px;cursor:pointer;font-family:inherit;font-weight:600}
+.rv-tool:hover{border-color:var(--accent);color:var(--accent)}
+.rv-switch{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:var(--sub);cursor:pointer;user-select:none}
+.rv-switch input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;margin:0}
 
 .tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12.5px;background:#f0e3d8;color:var(--accent);font-weight:600}
 
@@ -179,7 +184,11 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
           <button class="btn" id="rvSubmit" style="border-color:var(--accent);color:var(--accent)" onclick="addReview()">+ 记一条复盘</button>
         </div>
       </div>
-      <div id="rvList" style="margin-top:14px"></div>
+      <div class="rv-toolbar">
+        <button class="rv-tool" id="rvToggleAll" onclick="toggleRvAll()">展开全部</button>
+        <label class="rv-switch"><input type="checkbox" id="rvOnlyContent" checked onchange="setRvOnlyContent(this.checked)"><span>仅看有内容的日期</span></label>
+      </div>
+      <div id="rvList" style="margin-top:8px"></div>
     </div>
   </section>
   <!-- 设置 -->
@@ -343,7 +352,7 @@ function fillLog(){
 }
 
 /* ---------- 多维复盘（六类 + 全部） ---------- */
-let rvType='life', editingRv=null, editingRvDate=null, rvOpen=new Set();
+let rvType='life', editingRv=null, editingRvDate=null, rvOpen=new Set(), rvOnlyContent=true;
 function setRvSubmit(){
   var el=document.getElementById('rvSubmit');
   if(editingRv){ el.textContent='保存修改'; return; }
@@ -432,27 +441,64 @@ function editReview(id){
 function cancelRvEdit(){ if(!editingRv) return; editingRv=null; editingRvDate=null; rvReset(); setRvSubmit(); }
 function renderReviews(){
   const days=state.days||{};
-  const dateKeys=Object.keys(days).filter(d=>(days[d].reviews||[]).length).sort().reverse();
+  const dateKeys = rvOnlyContent
+    ? Object.keys(days).filter(d=>(days[d].reviews||[]).length).sort().reverse()
+    : Object.keys(days).sort().reverse();
   const box=document.getElementById('rvList');
   let h='';
   dateKeys.forEach(d=>{
     const all=(days[d].reviews||[]).slice().sort((a,b)=>b.ts-a.ts);
     const revs = rvType==='all' ? all : all.filter(r=>r.type===rvType);
-    if(!revs.length) return;
+    if(rvOnlyContent && !revs.length) return;
     const open = rvOpen.has(d);
+    const cnt = rvType==='all' ? all.length : revs.length;
     h+=`<div class="rv-group">
       <div class="rv-group-head" onclick="toggleRvGroup('${d}')">
         <span class="rv-group-arrow">${open?'▾':'▸'}</span>
         <span class="rv-group-date">${d}</span>
-        <span class="rv-group-cnt">${revs.length}</span>
+        <span class="rv-group-cnt">${cnt}</span>
       </div>
       <div class="rv-group-body" id="rvg-${d}" style="display:${open?'block':'none'}">
-        ${revs.map(r=>rvItemHtml(r,d)).join('')}
+        ${revs.length ? revs.map(r=>rvItemHtml(r,d)).join('') : '<div class="rv-empty" style="padding:8px 4px">（暂无复盘）</div>'}
       </div></div>`;
   });
-  if(!h){ box.innerHTML='<div class="rv-empty">'+(rvType==='all'?'还没有任何复盘记录。':'该分类下还没有复盘记录。')+'</div>'; updateRvTagCounts(); return; }
+  if(!h){ box.innerHTML='<div class="rv-empty">'+(rvType==='all'?'还没有任何复盘记录。':'该分类下还没有复盘记录。')+'</div>'; updateRvTagCounts(); updateRvToggleAllLabel(); return; }
   box.innerHTML=h;
   updateRvTagCounts();
+  updateRvToggleAllLabel();
+}
+function toggleRvAll(){
+  const days=state.days||{};
+  const dateKeys = rvOnlyContent
+    ? Object.keys(days).filter(d=>(days[d].reviews||[]).length)
+    : Object.keys(days);
+  if(!dateKeys.length) return;
+  const allOpen = dateKeys.every(d=>rvOpen.has(d));
+  dateKeys.forEach(d=>{ if(allOpen) rvOpen.delete(d); else rvOpen.add(d); });
+  renderReviews();
+}
+function updateRvToggleAllLabel(){
+  const btn=document.getElementById('rvToggleAll'); if(!btn) return;
+  const days=state.days||{};
+  const dateKeys = rvOnlyContent
+    ? Object.keys(days).filter(d=>(days[d].reviews||[]).length)
+    : Object.keys(days);
+  const allOpen = dateKeys.length>0 && dateKeys.every(d=>rvOpen.has(d));
+  btn.textContent = allOpen ? '收起全部' : '展开全部';
+}
+function setRvOnlyContent(v){
+  rvOnlyContent=v;
+  // 切换时，把所有日期纳入/移出展开集合，保证行为一致
+  const days=state.days||{};
+  const dateKeys = v
+    ? Object.keys(days).filter(d=>(days[d].reviews||[]).length)
+    : Object.keys(days);
+  if(v){ // 仅看有内容：保留当前展开集，但移除空日期
+    Object.keys(days).forEach(d=>{ if(!(days[d].reviews||[]).length) rvOpen.delete(d); });
+  } else { // 显示全部：默认收起所有，避免一次性展开过多
+    rvOpen=new Set();
+  }
+  renderReviews();
 }
 function toggleRvGroup(date){
   if(rvOpen.has(date)) rvOpen.delete(date); else rvOpen.add(date);
