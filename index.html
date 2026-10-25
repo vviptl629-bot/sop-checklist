@@ -57,9 +57,16 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
 .mini:hover{border-color:var(--accent);color:var(--accent)}
 .mini.del:hover{border-color:var(--accent);color:var(--accent);background:#f6e7e0}
 .mini.ghost{color:var(--sub)}
-.edit-in{flex:1;min-width:160px;border:1px solid var(--accent);border-radius:9px;padding:7px 9px;font-size:14px;font-family:inherit;background:#fff;color:var(--ink)}
-.addrow{display:flex;gap:8px;margin-top:12px}
-.addrow input{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:14px;font-family:inherit;background:#fffdf9;color:var(--ink)}
+.addrow{margin-top:12px}
+.addrow .addbtn{display:block;width:100%;text-align:center;font-size:13.5px;padding:9px 10px}
+
+/* 弹出式输入层（解决小米浏览器键盘遮挡）：固定钉在屏幕顶部，键盘只盖下半屏，输入框始终可见 */
+.modal-mask{position:fixed;inset:0;background:rgba(40,28,20,.45);display:none;z-index:60;align-items:flex-start;justify-content:center;padding:8vh 4vw 0;box-sizing:border-box}
+.modal-mask.show{display:flex}
+.modal-card{background:var(--card);border:1px solid var(--line);border-radius:16px;width:100%;max-width:440px;padding:16px;box-shadow:0 12px 32px rgba(0,0,0,.22)}
+.modal-card h3{margin:0 0 12px;font-size:15px;color:var(--accent);font-weight:600}
+.modal-card input{width:100%;box-sizing:border-box;padding:13px;border:1px solid var(--line);border-radius:10px;font-size:16px;font-family:inherit;background:#fffdf9;color:var(--ink)}
+.modal-actions{display:flex;gap:10px;margin-top:14px;justify-content:flex-end}
 
 .field label{display:block;font-size:13px;color:var(--accent2);margin-bottom:5px;font-weight:600}
 .field textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px;font-size:14px;font-family:inherit;resize:vertical;background:#fffdf9;color:var(--ink)}
@@ -249,7 +256,6 @@ if(!state||!state.lists||!state.days){state={lists:seed(),days:{}}}
 
 let cur=new Date().toISOString().slice(0,10);
 let activeTab="must";
-let editingId=null;
 
 function day(){return state.days[cur]||(state.days[cur]={done:{chart:{},must:{},reading:{}},reviews:[]})}
 function save(){localStorage.setItem(KEY,JSON.stringify(state));schedulePush();}
@@ -267,29 +273,17 @@ function renderList(g){
     <div class="prog"><div class="track"><div class="bar" style="width:${pct}%"></div></div><span>${dc}/${n}</span></div>
     <ul class="clist">`;
   list.items.forEach(it=>{
-    if(editingId===it.id){
-      html+=`<li class="editing"><input class="edit-in" id="edit-${it.id}" value="${escAttr(it.text)}">
-        <button class="mini" onclick="saveEdit('${g}','${it.id}')">保存</button>
-        <button class="mini ghost" onclick="cancelEdit()">取消</button></li>`;
-    }else{
-      const checked=!!done[it.id];
-      html+=`<li>
-        <input type="checkbox" ${checked?'checked':''} onchange="toggle('${g}','${it.id}',this.checked)">
-        <label>${esc(it.text)}</label>
-        <span class="acts">
-          <button class="mini" onclick="startEdit('${g}','${it.id}')">编辑</button>
-          <button class="mini del" onclick="delItem('${g}','${it.id}')">删除</button>
-        </span></li>`;
-    }
+    const checked=!!done[it.id];
+    html+=`<li>
+      <input type="checkbox" ${checked?'checked':''} onchange="toggle('${g}','${it.id}',this.checked)">
+      <label>${esc(it.text)}</label>
+      <span class="acts">
+        <button class="mini" onclick="openEditor('edit','${g}','${it.id}')">编辑</button>
+        <button class="mini del" onclick="delItem('${g}','${it.id}')">删除</button>
+      </span></li>`;
   });
-  html+=`</ul><div class="addrow"><input id="add-${g}" placeholder="添加新项目…"><button class="mini" onclick="addItem('${g}')">添加</button></div></div>`;
+  html+=`</ul><div class="addrow"><button class="mini addbtn" onclick="openEditor('add','${g}')">＋ 添加项目</button></div></div>`;
   panel.innerHTML=html;
-  if(editingId){
-    const e=document.getElementById('edit-'+editingId);
-    if(e){e.focus();e.select();
-      e.onkeydown=ev=>{if(ev.key==='Enter')saveEdit2(g,editingId);if(ev.key==='Escape')cancelEdit();};
-    }
-  }
 }
 function updateProg(g){
   const panel=document.getElementById('tab-'+g);
@@ -300,12 +294,28 @@ function updateProg(g){
   const sp=panel.querySelector('.prog span');if(sp)sp.textContent=dc+'/'+n;
 }
 function toggle(g,id,v){day().done[g][id]=v;save();updateProg(g)}
-function startEdit(g,id){editingId=id;renderList(g)}
-function cancelEdit(){editingId=null;if(['must','chart','reading'].includes(activeTab))renderList(activeTab)}
-function saveEdit(g,id){saveEdit2(g,id)}
-function saveEdit2(g,id){const el=document.getElementById('edit-'+id);if(el){const t=el.value.trim()||'未命名';const it=state.lists[g].items.find(x=>x.id===id);if(it)it.text=t;save();}editingId=null;renderList(g)}
-function delItem(g,id){if(confirm('确定删除该项目？')){state.lists[g].items=state.lists[g].items.filter(x=>x.id!==id);for(const d in state.days)delete state.days[d].done[g][id];save();renderList(g);}}
-function addItem(g){const el=document.getElementById('add-'+g);const t=(el.value||'').trim();if(!t)return;state.lists[g].items.push({id:uid(),text:t});el.value='';save();renderList(g)}
+function delItem(g,id){if(confirm('确定删除该项目？')){state.lists[g].items=state.lists[g].items.filter(x=>x.id!==id);for(const d in state.days)delete state.days[d].done[g][id];save();renderList(g)}}
+/* 弹出式输入层：添加 / 编辑 项目都用它，输入框固定钉在屏幕顶部，避开小米等浮层键盘遮挡 */
+var editorMode='add', editorGroup='', editorId='';
+function openEditor(mode,g,id){
+  editorMode=mode; editorGroup=g; editorId=id||'';
+  document.getElementById('editorTitle').textContent = mode==='edit'?'编辑项目':'添加项目';
+  document.getElementById('editorInput').value = mode==='edit' ? ((state.lists[g].items.find(x=>x.id===id)||{}).text||'') : '';
+  document.getElementById('editorModal').classList.add('show');
+  setTimeout(function(){var i=document.getElementById('editorInput');i.focus();if(i.select)i.select();},60);
+}
+function closeEditor(){document.getElementById('editorModal').classList.remove('show');editorMode='add';editorGroup='';editorId='';}
+function confirmEditor(){
+  var v=document.getElementById('editorInput').value.trim();
+  if(!v){closeEditor();return;}
+  if(editorMode==='add'){
+    state.lists[editorGroup].items.push({id:uid(),text:v});
+  }else{
+    var it=state.lists[editorGroup].items.find(x=>x.id===editorId);
+    if(it)it.text=v;
+  }
+  save();renderList(editorGroup);closeEditor();
+}
 
 function renderAllLists(){['must','chart','reading'].forEach(renderList)}
 
@@ -361,7 +371,7 @@ function delReview(id){ if(confirm('删除这条复盘？')){ const revs=day().r
 document.querySelectorAll('.rv-tag').forEach(t=>t.addEventListener('click',()=>{rvType=t.dataset.type;applyRvTypeUI();}));
 
 function showTab(name){
-  activeTab=name;editingId=null;
+  activeTab=name;
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
   document.getElementById('tab-'+name).classList.add('show');
   document.querySelectorAll('.dock-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
@@ -444,7 +454,10 @@ if(sync.enabled&&sync.token){syncStatus('同步中…');syncNow();startAutoPull(
 (function(){
   var body = document.body;
   var baseline = window.innerHeight;
-  function isField(el){ return el && (el.tagName==='INPUT'||el.tagName==='TEXTAREA'); }
+  function isField(el){
+    return el && (el.tagName==='INPUT'||el.tagName==='TEXTAREA')
+      && !(el.closest && el.closest('#editorModal')); // 弹窗内的输入框是固定定位，无需滚动页面
+  }
   function kbHeight(){
     var kb = 0;
     if(window.visualViewport){
@@ -493,5 +506,17 @@ if(sync.enabled&&sync.token){syncStatus('同步中…');syncNow();startAutoPull(
 })();
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./'}).catch(function(e){console.log('SW register failed',e)})});}
 </script>
+
+<!-- 弹出式输入层（添加/编辑项目）—— 固定钉在屏幕顶部，避开小米等浮层键盘遮挡 -->
+<div class="modal-mask" id="editorModal" onclick="if(event.target===this)closeEditor()">
+  <div class="modal-card">
+    <h3 id="editorTitle">添加项目</h3>
+    <input id="editorInput" type="text" placeholder="输入内容…" autocomplete="off" onkeydown="if(event.key==='Enter')confirmEditor();if(event.key==='Escape')closeEditor()">
+    <div class="modal-actions">
+      <button class="mini" onclick="closeEditor()">取消</button>
+      <button class="mini" style="border-color:var(--accent);color:var(--accent)" onclick="confirmEditor()">确定</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
