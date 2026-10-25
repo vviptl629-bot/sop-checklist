@@ -61,7 +61,6 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
 .addrow{display:flex;gap:8px;margin-top:12px}
 .addrow input{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:14px;font-family:inherit;background:#fffdf9;color:var(--ink)}
 
-.loggrid{display:flex;flex-direction:column;gap:14px}
 .field label{display:block;font-size:13px;color:var(--accent2);margin-bottom:5px;font-weight:600}
 .field textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px;font-size:14px;font-family:inherit;resize:vertical;background:#fffdf9;color:var(--ink)}
 .field textarea:focus{outline:none;border-color:var(--accent)}
@@ -78,10 +77,6 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
 .rv-item .mini{position:absolute;right:8px;top:9px}
 .rv-empty{color:var(--sub);font-size:13px;padding:6px 0}
 
-.wtab{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
-.wtab th,.wtab td{border:1px solid var(--line);padding:8px;vertical-align:top;text-align:left}
-.wtab th{background:#f0e9df;color:var(--sub);font-weight:600}
-.wtab td{white-space:pre-wrap;word-break:break-word}
 .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;background:#f0e3d8;color:var(--accent)}
 
 .setting-row{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
@@ -120,7 +115,7 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
   <header>
     <div>
       <h1>每日 SOP 核查表</h1>
-      <p>图表复盘 · 每日必做 · 读书SOP · 每日记录 · 周复盘</p>
+      <p>图表复盘 · 每日必做 · 读书SOP · 多维复盘</p>
     </div>
     <div class="sync-pill" id="syncPill" onclick="showTab('settings')">同步 · 未启用</div>
   </header>
@@ -137,16 +132,8 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
   <section class="panel" id="tab-chart"></section>
   <!-- 读书 -->
   <section class="panel" id="tab-reading"></section>
-  <!-- 每日记录 -->
+  <!-- 复盘（多维复盘） -->
   <section class="panel" id="tab-log">
-    <div class="card">
-      <h2>每日记录（周复盘素材）</h2>
-      <div class="loggrid">
-        <div class="field"><label>今天做了哪些事</label><textarea id="log" rows="5" placeholder="按时间或板块记录今天的实际动作…"></textarea></div>
-        <div class="field"><label>卡点 / 问题</label><textarea id="problem" rows="4" placeholder="哪里卡住了？哪里没按计划？"></textarea></div>
-        <div class="field"><label>明日改进</label><textarea id="improve" rows="4" placeholder="明天具体改什么？"></textarea></div>
-      </div>
-    </div>
     <div class="card">
       <h2>多维复盘（六类）</h2>
       <div class="rv-tags">
@@ -170,15 +157,6 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
         <button class="btn" style="border-color:var(--accent);color:var(--accent)" onclick="addReview()">+ 记一条复盘</button>
       </div>
       <div id="rvList" style="margin-top:14px"></div>
-    </div>
-    <div class="card">
-      <h2>周复盘视图（最近 7 天）</h2>
-      <div class="datebar" style="margin:4px 0 12px">
-        <span style="font-size:13px;color:var(--sub)">周截止日</span>
-        <input type="date" id="weekEnd" onchange="renderWeek()">
-        <button class="btn" onclick="document.getElementById('weekEnd').value=cur;renderWeek()">最近7天</button>
-      </div>
-      <div id="weekOut"></div>
     </div>
   </section>
   <!-- 设置 -->
@@ -227,7 +205,7 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
   <button class="dock-btn active" data-tab="must"><span class="ic">◆</span>积累</button>
   <button class="dock-btn" data-tab="chart"><span class="ic">▮</span>交易</button>
   <button class="dock-btn" data-tab="reading"><span class="ic">▤</span>读书</button>
-  <button class="dock-btn" data-tab="log"><span class="ic">✎</span>每日记录</button>
+  <button class="dock-btn" data-tab="log"><span class="ic">✎</span>复盘</button>
   <button class="dock-btn" data-tab="settings"><span class="ic">⚙</span>设置</button>
 </nav>
 
@@ -241,7 +219,7 @@ const DEFAULTS={
     "图表复盘（见交易 Tab）",
     "阅读推进（记录绝对页码）",
     "人生母题访谈/写作（或既定创作）",
-    "填写当日复盘日志（每日记录 Tab）"
+    "填写当日多维复盘（复盘 Tab）"
   ]},
   chart:{title:"每日图表复盘核查（交易）",items:[
     "复盘当日主交易时段关键K线（开盘/欧盘/美盘）",
@@ -273,7 +251,7 @@ let cur=new Date().toISOString().slice(0,10);
 let activeTab="must";
 let editingId=null;
 
-function day(){return state.days[cur]||(state.days[cur]={done:{chart:{},must:{},reading:{}},log:"",problem:"",improve:"",reviews:[]})}
+function day(){return state.days[cur]||(state.days[cur]={done:{chart:{},must:{},reading:{}},reviews:[]})}
 function save(){localStorage.setItem(KEY,JSON.stringify(state));schedulePush();}
 function esc(s){return (s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
 function escAttr(s){return esc(s).replace(/"/g,"&quot;")}
@@ -331,19 +309,12 @@ function addItem(g){const el=document.getElementById('add-'+g);const t=(el.value
 
 function renderAllLists(){['must','chart','reading'].forEach(renderList)}
 
-function setDate(d){cur=d;renderAllLists();fillLog();renderWeek()}
-function goToday(){cur=new Date().toISOString().slice(0,10);document.getElementById('dateIn').value=cur;renderAllLists();fillLog();renderWeek()}
+function setDate(d){cur=d;renderAllLists();fillLog()}
+function goToday(){cur=new Date().toISOString().slice(0,10);document.getElementById('dateIn').value=cur;renderAllLists();fillLog()}
 function fillLog(){
-  const dd=day();
-  document.getElementById('log').value=dd.log||"";
-  document.getElementById('problem').value=dd.problem||"";
-  document.getElementById('improve').value=dd.improve||"";
   document.getElementById('dateIn').value=cur;
   renderReviews();
 }
-['log','problem','improve'].forEach(k=>{
-  document.addEventListener('input',e=>{if(e.target.id===k){day()[k]=e.target.value;save()}});
-});
 
 /* ---------- 多维复盘（六类） ---------- */
 let rvType='life';
@@ -389,32 +360,13 @@ function renderReviews(){
 function delReview(id){ if(confirm('删除这条复盘？')){ const revs=day().reviews||[]; day().reviews=revs.filter(x=>x.id!==id); save(); renderReviews(); } }
 document.querySelectorAll('.rv-tag').forEach(t=>t.addEventListener('click',()=>{rvType=t.dataset.type;applyRvTypeUI();}));
 
-function renderWeek(){
-  const end=document.getElementById('weekEnd').value||cur;
-  const days=[];
-  for(let i=6;i>=0;i--){const d=new Date(end);d.setDate(d.getDate()-i);days.push(d.toISOString().slice(0,10))}
-  let html='<table class="wtab"><thead><tr><th style="width:70px">日期</th><th>做了什么</th><th>卡点/问题</th><th>明日改进</th><th>复盘</th><th style="width:55px">完成度</th></tr></thead><tbody>';
-  days.forEach(d=>{
-    const rec=state.days[d];
-    const lc=rec?rec.log||"":"",pc=rec?rec.problem||"":"",im=rec?rec.improve||"":"";
-    const revs=rec?rec.reviews||[]:[];
-    let rc={};revs.forEach(r=>rc[r.type]=(rc[r.type]||0)+1);
-    const rtags=Object.keys(rc).map(t=>'<span class="tag">'+REVIEW_TYPES[t]+rc[t]+'</span>').join(' ')||'—';
-    let tot=0,done=0;
-    for(const g of ['chart','must','reading']){state.lists[g].items.forEach(it=>{tot++;if(rec&&rec.done[g]&&rec.done[g][it.id])done++})}
-    const pct=tot?Math.round(done/tot*100):0;
-    html+=`<tr><td>${d.slice(5)}</td><td>${esc(lc)||"—"}</td><td>${esc(pc)||"—"}</td><td>${esc(im)||"—"}</td><td>${rtags}</td><td><span class="tag">${pct}%</span></td></tr>`;
-  });
-  html+="</tbody></table>";
-  document.getElementById('weekOut').innerHTML=html;
-}
 function showTab(name){
   activeTab=name;editingId=null;
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
   document.getElementById('tab-'+name).classList.add('show');
   document.querySelectorAll('.dock-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
   if(['must','chart','reading'].includes(name))renderList(name);
-  if(name==='log'){fillLog();renderWeek()}
+  if(name==='log')fillLog()
   window.scrollTo({top:0,behavior:'smooth'});
 }
 document.getElementById('dock').addEventListener('click',e=>{const b=e.target.closest('.dock-btn');if(b)showTab(b.dataset.tab)});
@@ -428,7 +380,7 @@ function importJSON(input){
       const d=JSON.parse(r.result);
       // 情形 A：SOP 自身备份 → 整份替换
       if(d && d.lists && d.days){
-        state=d; save(); renderAllLists(); fillLog(); renderWeek(); renderReviews();
+        state=d; save(); renderAllLists(); fillLog(); renderReviews();
         alert('已导入 SOP 备份');
       }
       // 情形 B：每日复盘导出 → 合并进各日「多维复盘」（type 对齐：life/trade/study/idea/think/summary）
@@ -436,12 +388,12 @@ function importJSON(input){
         const src=d.entries||[]; let n=0;
         src.forEach(e=>{
           if(!e || !e.date || !e.type) return;
-          const dayObj=state.days[e.date] || (state.days[e.date]={done:{chart:{},must:{},reading:{}},log:'',problem:'',improve:'',reviews:[]});
+          const dayObj=state.days[e.date] || (state.days[e.date]={done:{chart:{},must:{},reading:{}},reviews:[]});
           const revs=dayObj.reviews || (dayObj.reviews=[]);
           revs.push({id:'dr'+e.id, type:e.type, what:e.what||'', good:e.good||'', bad:e.bad||'', done:!!e.done, ts:e.updated||Date.now()});
           n++;
         });
-        save(); renderReviews(); renderWeek();
+        save(); renderReviews();
         alert('已合并每日复盘 '+n+' 条到对应日期的多维复盘');
       }
       else alert('文件格式不正确');
@@ -450,7 +402,7 @@ function importJSON(input){
   };
   r.readAsText(f);
 }
-function resetAll(){if(confirm('确定清空全部数据？此操作不可恢复。')){localStorage.removeItem(KEY);state={lists:seed(),days:{}};cur=new Date().toISOString().slice(0,10);document.getElementById('dateIn').value=cur;renderAllLists();fillLog();renderWeek()}}
+function resetAll(){if(confirm('确定清空全部数据？此操作不可恢复。')){localStorage.removeItem(KEY);state={lists:seed(),days:{}};cur=new Date().toISOString().slice(0,10);document.getElementById('dateIn').value=cur;renderAllLists();fillLog()}}
 
 /* ---------- GitHub Gist 云端同步（移植自每日复盘工作台） ---------- */
 const SYNC_KEY='sop_sync_v1', SYNC_FILE='sop_checklist_data.json', SYNC_VER=1;
@@ -470,16 +422,15 @@ async function pullSync(silent){if(!sync.enabled||!sync.token||!sync.gistId)retu
 async function syncNow(){if(!sync.enabled||!sync.token){syncStatus('请先启用同步','err');return;}syncStatus('同步中…');await pullSync();await pushSync();}
 let _autoPull=null;function startAutoPull(){if(_autoPull)return;_autoPull=setInterval(()=>{(async()=>{if(typeof navigator!=='undefined'&&navigator.onLine===false)return;if(sync.dirty){await pushSync();}await pullSync(true);})();},45000);}
 function showGistInfo(){const el=document.getElementById('syncGistInfo');if(!el)return;el.innerHTML=sync.gistId?('已绑定私有 Gist：<a href="https://gist.github.com/'+sync.gistId+'" target="_blank" rel="noopener">'+sync.gistId+'</a><br>在两台设备用<b>相同 Token + 此 ID</b> 即可共享同一份数据。'):'';}
-function rerenderAll(){renderAllLists();fillLog();renderWeek();if(activeTab==='log')renderReviews();}
+function rerenderAll(){renderAllLists();fillLog();if(activeTab==='log')renderReviews();}
 document.getElementById('syncEnable').onclick=async()=>{const prev=sync.token;sync.token=document.getElementById('syncToken').value.trim();sync.gistId=document.getElementById('syncGistId').value.trim();if(!sync.token){syncStatus('请先粘贴 Token','err');return;}if(sync.token!==prev)sync.tokenAt=Date.now();sync.enabled=true;saveSyncCfg();syncStatus('同步中…');await syncNow();startAutoPull();showGistInfo();};
 document.getElementById('syncNow').onclick=()=>syncNow();
 document.getElementById('syncClearToken').onclick=()=>{if(window.confirm('清除本机保存的 Token 并停用同步？')){sync.token='';sync.tokenAt=0;sync.enabled=false;sync.gistId='';saveSyncCfg();document.getElementById('syncToken').value='';document.getElementById('syncGistId').value='';showGistInfo();syncStatus('已清除本机 Token');}};
 
 /* ---------- 初始化 ---------- */
 document.getElementById('dateIn').value=cur;
-document.getElementById('weekEnd').value=cur;
 applyRvTypeUI();
-renderAllLists();fillLog();renderWeek();
+renderAllLists();fillLog();
 if(sync.enabled&&sync.token){syncStatus('同步中…');syncNow();startAutoPull();}
 </script>
 <script>
