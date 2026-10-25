@@ -434,45 +434,60 @@ renderAllLists();fillLog();
 if(sync.enabled&&sync.token){syncStatus('同步中…');syncNow();startAutoPull();}
 </script>
 <script>
-/* 软键盘遮挡修复（v2）：
-   1) 聚焦输入框时，给 body 临时加 = 键盘高度 的底部留白，使最底部的输入框也能被滚出键盘区；
-   2) 用 VisualViewport 实时算键盘顶部边界，把输入框滚到其上方 20px；
-   3) 监听 visualViewport.resize（键盘动画结束触发）反复校正，避免 320ms 测量时键盘未展开导致的误判。 */
+/* 软键盘遮挡修复（v3，兼容小米/MIUI 浮层键盘）：
+   小米浏览器多数用「键盘浮层」模式——键盘弹出时 window.innerHeight 与 visualViewport 都不变，
+   因此无法靠高度差判断键盘。策略：
+   - 若可检测到键盘高度（resize 模式 / visualViewport 缩小）→ 输入框滚到键盘上方 20px；
+   - 若检测不到（浮层模式，kb=0）→ 假定键盘占底部约一半，把输入框滚到上半屏可见区；
+   - 聚焦时给 body 加底部留白（= 键盘高度，或浮层模式按半屏），保证最底部输入框也能滚上去；
+   - 在 200/400/650ms 及 visualViewport.resize / window.resize 反复校正。 */
 (function(){
   var body = document.body;
-  function kbTop(){
-    var vv = window.visualViewport;
-    return vv ? (vv.height + (vv.offsetTop||0)) : window.innerHeight;
+  var baseline = window.innerHeight;
+  function isField(el){ return el && (el.tagName==='INPUT'||el.tagName==='TEXTAREA'); }
+  function kbHeight(){
+    var kb = 0;
+    if(window.visualViewport){
+      kb = Math.max(kb, window.innerHeight - window.visualViewport.height - (window.visualViewport.offsetTop||0));
+    }
+    kb = Math.max(kb, baseline - window.innerHeight); // 部分浏览器键盘缩窗触发 window.resize
+    return kb;
   }
   function adjust(){
-    var vv = window.visualViewport;
-    var kb = vv ? Math.max(0, window.innerHeight - vv.height - (vv.offsetTop||0)) : 0;
-    body.style.paddingBottom = (kb > 0 ? kb + 24 : 0) + 'px';
+    if(!isField(document.activeElement)){ body.style.paddingBottom=''; return; }
+    var kb = kbHeight();
+    var pad = kb > 0 ? kb + 24 : Math.round(window.innerHeight * 0.5); // 浮层模式：按半屏留白保证可滚
+    body.style.paddingBottom = pad + 'px';
   }
   function ensureVisible(el){
-    if(!el) return;
+    if(!isField(el)) return;
     adjust();
     [200, 400, 650].forEach(function(d){
       setTimeout(function(){
         adjust();
         var rect = el.getBoundingClientRect();
-        var visibleBottom = kbTop() - 20;
-        if(rect.bottom > visibleBottom){
-          window.scrollBy(0, rect.bottom - visibleBottom);
+        var kb = kbHeight();
+        var safeBottom = kb > 0 ? (window.innerHeight - kb - 20) : Math.round(window.innerHeight * 0.5) - 16;
+        if(rect.bottom > safeBottom){
+          window.scrollBy(0, rect.bottom - safeBottom);
         }
       }, d);
     });
   }
   document.addEventListener('focusin', function(e){
-    var el = e.target;
-    if(el && (el.tagName==='INPUT'||el.tagName==='TEXTAREA')){ adjust(); ensureVisible(el); }
+    if(isField(e.target)){ adjust(); ensureVisible(e.target); }
   });
-  document.addEventListener('focusout', function(){ body.style.paddingBottom = ''; });
+  document.addEventListener('focusout', function(){ body.style.paddingBottom=''; });
+  window.addEventListener('resize', function(){
+    // 屏幕方向/尺寸大幅变化时刷新基准高度
+    if(Math.abs(window.innerHeight - baseline) > Math.min(baseline, window.innerHeight)*0.3){ baseline = window.innerHeight; }
+    adjust();
+    if(isField(document.activeElement)) ensureVisible(document.activeElement);
+  });
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize', function(){
       adjust();
-      var el = document.activeElement;
-      if(el && (el.tagName==='INPUT'||el.tagName==='TEXTAREA')) ensureVisible(el);
+      if(isField(document.activeElement)) ensureVisible(document.activeElement);
     });
   }
 })();
