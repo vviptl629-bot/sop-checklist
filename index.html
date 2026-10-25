@@ -214,6 +214,9 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
         <input type="file" id="importFile" accept="application/json" onchange="importJSON(this)">
       </div>
       <div class="setting-row">
+        <span class="hint">也支持导入「每日复盘」的导出文件：会自动按日期合并进各日的多维复盘。</span>
+      </div>
+      <div class="setting-row">
         <button class="btn warn" onclick="resetAll()">清空全部数据</button>
       </div>
     </div>
@@ -417,7 +420,36 @@ function showTab(name){
 document.getElementById('dock').addEventListener('click',e=>{const b=e.target.closest('.dock-btn');if(b)showTab(b.dataset.tab)});
 
 function exportJSON(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sop-backup-'+cur+'.json';a.click()}
-function importJSON(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(d&&d.lists&&d.days){state=d;save();renderAllLists();fillLog();renderWeek();alert('导入成功')}else alert('文件格式不正确')}catch(e){alert('解析失败')};input.value=''};r.readAsText(f)}
+function importJSON(input){
+  const f=input.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      // 情形 A：SOP 自身备份 → 整份替换
+      if(d && d.lists && d.days){
+        state=d; save(); renderAllLists(); fillLog(); renderWeek(); renderReviews();
+        alert('已导入 SOP 备份');
+      }
+      // 情形 B：每日复盘导出 → 合并进各日「多维复盘」（type 对齐：life/trade/study/idea/think/summary）
+      else if(d && (d._app==='daily-review' || Array.isArray(d.entries))){
+        const src=d.entries||[]; let n=0;
+        src.forEach(e=>{
+          if(!e || !e.date || !e.type) return;
+          const dayObj=state.days[e.date] || (state.days[e.date]={done:{chart:{},must:{},reading:{}},log:'',problem:'',improve:'',reviews:[]});
+          const revs=dayObj.reviews || (dayObj.reviews=[]);
+          revs.push({id:'dr'+e.id, type:e.type, what:e.what||'', good:e.good||'', bad:e.bad||'', done:!!e.done, ts:e.updated||Date.now()});
+          n++;
+        });
+        save(); renderReviews(); renderWeek();
+        alert('已合并每日复盘 '+n+' 条到对应日期的多维复盘');
+      }
+      else alert('文件格式不正确');
+    }catch(e){ alert('解析失败：'+(e&&e.message||e)); }
+    input.value='';
+  };
+  r.readAsText(f);
+}
 function resetAll(){if(confirm('确定清空全部数据？此操作不可恢复。')){localStorage.removeItem(KEY);state={lists:seed(),days:{}};cur=new Date().toISOString().slice(0,10);document.getElementById('dateIn').value=cur;renderAllLists();fillLog();renderWeek()}}
 
 /* ---------- GitHub Gist 云端同步（移植自每日复盘工作台） ---------- */
