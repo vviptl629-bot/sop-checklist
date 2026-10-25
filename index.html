@@ -434,29 +434,43 @@ renderAllLists();fillLog();
 if(sync.enabled&&sync.token){syncStatus('同步中…');syncNow();startAutoPull();}
 </script>
 <script>
-/* 软键盘遮挡修复：聚焦输入框时，用 VisualViewport 计算键盘顶部边界，
-   把当前输入框滚到键盘上方留白处（而非视口正中，避免被键盘盖住） */
+/* 软键盘遮挡修复（v2）：
+   1) 聚焦输入框时，给 body 临时加 = 键盘高度 的底部留白，使最底部的输入框也能被滚出键盘区；
+   2) 用 VisualViewport 实时算键盘顶部边界，把输入框滚到其上方 20px；
+   3) 监听 visualViewport.resize（键盘动画结束触发）反复校正，避免 320ms 测量时键盘未展开导致的误判。 */
 (function(){
+  var body = document.body;
+  function kbTop(){
+    var vv = window.visualViewport;
+    return vv ? (vv.height + (vv.offsetTop||0)) : window.innerHeight;
+  }
+  function adjust(){
+    var vv = window.visualViewport;
+    var kb = vv ? Math.max(0, window.innerHeight - vv.height - (vv.offsetTop||0)) : 0;
+    body.style.paddingBottom = (kb > 0 ? kb + 24 : 0) + 'px';
+  }
   function ensureVisible(el){
     if(!el) return;
-    setTimeout(function(){
-      var vv = window.visualViewport;
-      var keyboardTop = vv ? (vv.height + (vv.offsetTop||0)) : window.innerHeight;
-      var rect = el.getBoundingClientRect();
-      var margin = 24;
-      if(rect.bottom > keyboardTop - margin){
-        var delta = rect.bottom - (keyboardTop - margin);
-        try{ window.scrollBy({top: delta, behavior:'smooth'}); }
-        catch(e){ window.scrollBy(0, delta); }
-      }
-    }, 320);
+    adjust();
+    [200, 400, 650].forEach(function(d){
+      setTimeout(function(){
+        adjust();
+        var rect = el.getBoundingClientRect();
+        var visibleBottom = kbTop() - 20;
+        if(rect.bottom > visibleBottom){
+          window.scrollBy(0, rect.bottom - visibleBottom);
+        }
+      }, d);
+    });
   }
   document.addEventListener('focusin', function(e){
     var el = e.target;
-    if(el && (el.tagName==='INPUT'||el.tagName==='TEXTAREA')) ensureVisible(el);
+    if(el && (el.tagName==='INPUT'||el.tagName==='TEXTAREA')){ adjust(); ensureVisible(el); }
   });
+  document.addEventListener('focusout', function(){ body.style.paddingBottom = ''; });
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize', function(){
+      adjust();
       var el = document.activeElement;
       if(el && (el.tagName==='INPUT'||el.tagName==='TEXTAREA')) ensureVisible(el);
     });
