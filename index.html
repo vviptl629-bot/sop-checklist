@@ -165,6 +165,12 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
   ul.clist label{font-size:16.5px}
   .dock-btn{font-size:13px}.dock-btn .ic{font-size:18px}
 }
+.sync-status{font-size:13px;margin-top:8px;min-height:18px;color:var(--sub)}
+.sync-status.ok{color:var(--ok)}
+.sync-status.err{color:var(--accent)}
+.sync-status.warn{color:#b8860b}
+.sync-gist{font-size:12px;color:var(--sub);margin-top:6px;line-height:1.6}
+.sync-gist a{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -223,11 +229,31 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 
   <!-- 设置 -->
   <section class="panel" id="tab-settings">
+    <div class="card" id="syncCard">
+      <h2>云端同步（GitHub Gist）</h2>
+      <div class="setting-row">
+        <label>GitHub Token</label>
+        <input type="password" id="syncToken" placeholder="粘贴 GitHub Token（账号 vviptl629-bot）" autocomplete="off">
+        <span class="hint">Token 仅存本机浏览器，用于读写你的私有 Gist。建议用 fine-grained token 并勾选 gist 权限。</span>
+      </div>
+      <div class="setting-row">
+        <label>Gist ID（留空自动新建）</label>
+        <input id="syncGistId" placeholder="留空则首次同步自动创建">
+      </div>
+      <div class="setting-row" style="flex-direction:row;flex-wrap:wrap;gap:8px">
+        <button class="btn" id="syncEnable" style="border-color:var(--accent);color:var(--accent)">启用并同步</button>
+        <button class="btn" id="syncNow">立即同步</button>
+        <button class="btn warn" id="syncClearToken">清除 Token</button>
+      </div>
+      <div class="sync-status" id="syncStatus"></div>
+      <div class="sync-gist" id="syncGistInfo"></div>
+      <div class="foot">每 45 秒自动拉取、改动后 0.8 秒防抖推送。两台设备用相同 Token + Gist ID 即共享同一份数据。</div>
+    </div>
     <div class="card">
       <h2>数据管理</h2>
       <div class="setting-row">
         <button class="btn" onclick="exportJSON()">导出备份（JSON）</button>
-        <span class="hint">部署时会接入现有 GitHub Gist 云端同步（45s 拉取 / 0.8s 防抖推送）。</span>
+        <span class="hint">已接入 GitHub Gist 云端同步（45s 拉取 / 0.8s 防抖推送），也可本地备份。</span>
       </div>
       <div class="setting-row">
         <label>导入备份（JSON）</label>
@@ -352,7 +378,7 @@ let cur=ymd();
 let liveToday=cur, followingToday=true, activeTab='check';
 
 function day(){return state.days[cur]||(state.days[cur]={done:{life:{},coffee:{},waishi:{},trade:{},reading:{}},reviews:[],temp:[]})}
-function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function save(){localStorage.setItem(KEY,JSON.stringify(state));schedulePush();}
 function esc(s){return (s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
 
 /* 折叠状态 */
@@ -662,11 +688,34 @@ function exportJSON(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'
 function importJSON(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(d&&d.areas&&d.days){state=d;save();renderCheck();fillLog();alert('已导入备份');}else alert('文件格式不正确（需 sop-v2 备份）');}catch(e){alert('解析失败：'+(e&&e.message||e));}input.value='';};r.readAsText(f);}
 function resetAll(){if(confirm('确定清空全部数据？此操作不可恢复。')){localStorage.removeItem(KEY);state=seedState();cur=ymd();liveToday=cur;followingToday=true;document.getElementById('dateIn').value=cur;renderCheck();fillLog();}}
 
+/* ---------- GitHub Gist 云端同步（移植自每日复盘工作台 / sop-c，适配 areas 结构） ---------- */
+const SYNC_KEY='sop_sync_v1', SYNC_FILE='sop_checklist_data.json', SYNC_VER=1;
+let sync={enabled:false,token:'',gistId:'',_t:null,_retry:null,_lastOk:0,rev:0,lastRev:0,tokenAt:0,dirty:false};
+try{const _s=JSON.parse(localStorage.getItem(SYNC_KEY)||'{}');sync.enabled=!!_s.enabled;sync.token=_s.token||'';sync.gistId=_s.gistId||'';sync.rev=parseInt(_s.rev||'0',10)||0;sync.lastRev=parseInt(_s.lastRev||'0',10)||0;sync.tokenAt=parseInt(_s.tokenAt||'0',10)||0;}catch(e){}
+function saveSyncCfg(){localStorage.setItem(SYNC_KEY,JSON.stringify({enabled:sync.enabled,token:sync.token,gistId:sync.gistId,rev:sync.rev,lastRev:sync.lastRev,tokenAt:sync.tokenAt}));}
+const TOKEN_TTL_DAYS=90;
+function tokenAgeDays(){return sync.tokenAt?Math.floor((Date.now()-sync.tokenAt)/86400000):0;}
+function tokenExpired(){return tokenAgeDays()>=TOKEN_TTL_DAYS;}
+function syncStatus(msg,cls){const el=document.getElementById('syncStatus');if(el){el.textContent=msg||'';el.className='sync-status'+(cls?' '+cls:'');}}
+function payload(){sync.rev=Math.max(sync.rev||0,sync.lastRev||0)+1;return JSON.stringify({v:SYNC_VER,rev:sync.rev,baseRev:sync.lastRev||0,updatedAt:Date.now(),state:state});}
+async function gistReq(method,id,body){const url=id?('https://api.github.com/gists/'+id):'https://api.github.com/gists';const opt={method,headers:{'Authorization':'Bearer '+sync.token,'Content-Type':'application/json','Accept':'application/vnd.github+json'}};if(body)opt.body=JSON.stringify(body);const r=await fetch(url,opt);if(r.status===401)throw new Error('GitHub 401 · Token 已失效，请重新生成带 gist 权限的新 Token');if(r.status===403)throw new Error('GitHub 403 · Token 缺少 gist 权限');if(!r.ok)throw new Error('GitHub '+r.status);return r.json();}
+async function pushSync(){if(!sync.enabled||!sync.token)return;clearTimeout(sync._t);try{const body=payload();if(!sync.gistId){const g=await gistReq('POST',null,{description:'每日SOP核查表 数据同步',public:false,files:{[SYNC_FILE]:{content:body}}});sync.gistId=g.id;saveSyncCfg();}else{await gistReq('PATCH',sync.gistId,{files:{[SYNC_FILE]:{content:body}}});}sync.lastRev=sync.rev;sync.dirty=false;saveSyncCfg();syncStatus('已同步 '+new Date().toLocaleTimeString(),'ok');if(sync._retry){clearInterval(sync._retry);sync._retry=null;}}catch(e){sync._pending=true;if(/40[13]/.test(e&&e.message||'')){if(sync._retry){clearInterval(sync._retry);sync._retry=null;}syncStatus('⚠ '+(e.message||'同步失败'),'err');return;}syncStatus(navigator.onLine===false?'离线，联网后上传':'同步失败，将重试：'+(e&&e.message?e.message:e),'warn');startPendingRetry();}}
+function startPendingRetry(){if(sync._retry)return;sync._retry=setInterval(()=>{if(!sync.enabled||!sync.token){clearInterval(sync._retry);sync._retry=null;return;}pushSync();},6000);}
+function schedulePush(){if(!sync.enabled||!sync.token)return;sync.dirty=true;clearTimeout(sync._t);sync._t=setTimeout(pushSync,800);}
+async function pullSync(silent){if(!sync.enabled||!sync.token||!sync.gistId)return;try{const g=await gistReq('GET',sync.gistId);const f=g.files&&g.files[SYNC_FILE];if(!f||!f.content)return;const d=JSON.parse(f.content);if(d&&d.rev&&d.rev>sync.rev){if(d.state){state=d.state;save();renderCheck();fillLog();}sync.rev=d.rev;sync.lastRev=d.rev;saveSyncCfg();}else if(d&&d.rev){sync.lastRev=d.rev;saveSyncCfg();}sync._lastOk=Date.now();if(!silent)syncStatus('已同步云端 '+new Date().toLocaleTimeString(),'ok');}catch(e){if(/40[13]/.test(e&&e.message||'')){if(sync._retry){clearInterval(sync._retry);sync._retry=null;}syncStatus('⚠ '+(e.message||'拉取失败'),'err');return;}if(!silent)syncStatus('拉取失败：'+(e&&e.message?e.message:e),'err');}}
+async function syncNow(){if(!sync.enabled||!sync.token){syncStatus('请先启用同步','err');return;}syncStatus('同步中…');await pullSync();await pushSync();}
+let _autoPull=null;function startAutoPull(){if(_autoPull)return;_autoPull=setInterval(()=>{(async()=>{if(typeof navigator!=='undefined'&&navigator.onLine===false)return;if(sync.dirty){await pushSync();}await pullSync(true);})();},45000);}
+function showGistInfo(){const el=document.getElementById('syncGistInfo');if(!el)return;el.innerHTML=sync.gistId?('已绑定私有 Gist：<a href="https://gist.github.com/'+sync.gistId+'" target="_blank" rel="noopener">'+sync.gistId+'</a><br>在两台设备用<b>相同 Token + 此 ID</b> 即可共享同一份数据。'):'';}
+document.getElementById('syncEnable').onclick=async()=>{const prev=sync.token;sync.token=document.getElementById('syncToken').value.trim();sync.gistId=document.getElementById('syncGistId').value.trim();if(!sync.token){syncStatus('请先粘贴 Token','err');return;}if(sync.token!==prev)sync.tokenAt=Date.now();sync.enabled=true;saveSyncCfg();syncStatus('同步中…');await syncNow();startAutoPull();showGistInfo();};
+document.getElementById('syncNow').onclick=()=>syncNow();
+document.getElementById('syncClearToken').onclick=()=>{if(window.confirm('清除本机保存的 Token 并停用同步？')){sync.token='';sync.tokenAt=0;sync.enabled=false;sync.gistId='';saveSyncCfg();document.getElementById('syncToken').value='';document.getElementById('syncGistId').value='';showGistInfo();syncStatus('已清除本机 Token');}};
+
 /* ===================== 初始化 ===================== */
 document.getElementById('dateIn').value=cur;
 applyRvTypeUI();
 renderCheck();fillLog();
 startDayWatcher();
+if(sync.enabled&&sync.token){syncStatus('同步中…');syncNow();startAutoPull();}
 </script>
 
 <script>
