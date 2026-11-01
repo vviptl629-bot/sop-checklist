@@ -171,6 +171,10 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 .sync-status.warn{color:#b8860b}
 .sync-gist{font-size:12px;color:var(--sub);margin-top:6px;line-height:1.6}
 .sync-gist a{color:var(--accent)}
+.subfold{display:flex;align-items:center;gap:10px;padding:11px 15px;cursor:pointer;user-select:none}
+.subfold-arrow{font-size:13px;color:var(--sub);width:14px;text-align:center}
+.subfold .area-name{flex:1}
+.done-row{opacity:.85}
 </style>
 </head>
 <body>
@@ -386,7 +390,7 @@ function save(){localStorage.setItem(KEY,JSON.stringify(state));schedulePush();}
 function esc(s){return (s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
 
 /* 折叠状态 */
-let areaOpen={life:true,coffee:true,waishi:true,trade:true,reading:true,temp:true};
+let areaOpen={life:true,coffee:true,waishi:true,trade:true,reading:true,temp:true};let tempDoneOpen=false;
 let doneOpen={life:false,coffee:false,waishi:false,trade:false,reading:false};
 let overdueOpen=false;
 
@@ -472,30 +476,53 @@ function renderAreaList(areaId,items,done){
 function renderTempSection(){
   const temp=day().temp||[];
   const open=areaOpen[TEMP_ID]!==false;
+  const todo=temp.filter(t=>!t.done);
+  const done=temp.filter(t=>t.done);
   let h=`<div class="area">
     <div class="area-head" onclick="toggleArea('${TEMP_ID}')">
       <span class="area-ic" style="background:#f0e3d8;color:var(--accent)">⚑</span>
       <span class="area-name">临时任务</span>
-      ${temp.length?`<span class="area-count">${temp.filter(t=>!t.done).length} 待办</span>`:''}
+      ${temp.length?`<span class="area-count">${todo.length} 待办</span>`:''}
       <span class="area-arrow">${open?'▾':'▸'}</span>
     </div>
     <div class="area-body" style="display:${open?'block':'none'}">`;
-  if(temp.length){
+  if(todo.length){
     h+='<div class="clist-wrap">';
-    temp.forEach(t=>{
-      const overdue = !t.done && t.due && t.due<cur;
+    todo.forEach(t=>{
+      const overdue = t.due && t.due<cur;
       h+=`<div class="temp-row ${overdue?'overdue-due':''}">
-        <input type="checkbox" ${t.done?'checked':''} onchange="toggleTemp('${t.id}',this.checked)" style="margin-top:4px;width:19px;height:19px;accent-color:var(--accent);flex:none">
+        <input type="checkbox" onchange="toggleTemp('${t.id}',this.checked)" style="margin-top:4px;width:19px;height:19px;accent-color:var(--accent);flex:none">
         <div class="t-main">
-          <div class="t-text" style="${t.done?'color:var(--sub);text-decoration:line-through':''}">${esc(t.text)}</div>
+          <div class="t-text">${esc(t.text)}</div>
           ${t.due?`<div class="t-due">截止 ${t.due}${overdue?' · 已逾期':''}</div>`:''}
         </div>
         <span class="acts"><button class="mini del" onclick="delTemp('${t.id}')">删除</button></span>
       </div>`;
     });
     h+='</div>';
-  }else{
+  }else if(!done.length){
     h+='<div class="ov-empty" style="padding:6px 0">暂无临时任务</div>';
+  }
+  if(done.length){
+    h+=`<div class="subfold" onclick="toggleTempDone()">
+      <span class="subfold-arrow">${tempDoneOpen?'▾':'▸'}</span>
+      <span class="area-name" style="font-size:15px">已完成的临时任务</span>
+      <span class="area-count">${done.length} 已完成</span>
+    </div>`;
+    if(tempDoneOpen){
+      h+='<div class="clist-wrap">';
+      done.forEach(t=>{
+        h+=`<div class="temp-row done-row">
+          <input type="checkbox" checked onchange="toggleTemp('${t.id}',this.checked)" style="margin-top:4px;width:19px;height:19px;accent-color:var(--accent);flex:none">
+          <div class="t-main">
+            <div class="t-text" style="color:var(--sub);text-decoration:line-through">${esc(t.text)}</div>
+            ${t.due?`<div class="t-due">截止 ${t.due}</div>`:''}
+          </div>
+          <span class="acts"><button class="mini del" onclick="delTemp('${t.id}')">删除</button></span>
+        </div>`;
+      });
+      h+='</div>';
+    }
   }
   h+=`<div class="addrow"><button class="addbtn" onclick="addTemp()">＋ 添加临时任务（可设截止日）</button></div></div></div>`;
   return h;
@@ -536,6 +563,7 @@ function delItem(areaId,id){if(confirm('确定删除该项目？')){state.areas[
 function editItem(areaId,id){const it=state.areas[areaId].items.find(x=>x.id===id);if(!it)return;openEditor('item',areaId,id,it.text)}
 function addItem(areaId){openEditor('item',areaId,null,'')}
 function toggleTemp(id,v){const t=(day().temp||[]).find(x=>x.id===id);if(t){t.done=v;save();renderCheck()}}
+function toggleTempDone(){tempDoneOpen=!tempDoneOpen;renderCheck()}
 function delTemp(id){if(confirm('删除这条临时任务？')){day().temp=(day().temp||[]).filter(x=>x.id!==id);save();renderCheck()}}
 function addTemp(){openEditor('temp',null,null,'')}
 
