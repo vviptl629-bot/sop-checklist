@@ -171,9 +171,6 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 .sync-status.warn{color:#b8860b}
 .sync-gist{font-size:12px;color:var(--sub);margin-top:6px;line-height:1.6}
 .sync-gist a{color:var(--accent)}
-.subfold{display:flex;align-items:center;gap:10px;padding:11px 15px;cursor:pointer;user-select:none}
-.subfold-arrow{font-size:13px;color:var(--sub);width:14px;text-align:center}
-.subfold .area-name{flex:1}
 .done-row{opacity:.85}
 </style>
 </head>
@@ -504,25 +501,23 @@ function renderTempSection(){
     h+='<div class="ov-empty" style="padding:6px 0">暂无临时任务</div>';
   }
   if(done.length){
-    h+=`<div class="subfold" onclick="toggleTempDone()">
-      <span class="subfold-arrow">${tempDoneOpen?'▾':'▸'}</span>
-      <span class="area-name" style="font-size:15px">已完成的临时任务</span>
-      <span class="area-count">${done.length} 已完成</span>
-    </div>`;
-    if(tempDoneOpen){
-      h+='<div class="clist-wrap">';
-      done.forEach(t=>{
-        h+=`<div class="temp-row done-row">
-          <input type="checkbox" checked onchange="toggleTemp('${t.id}',this.checked)" style="margin-top:4px;width:19px;height:19px;accent-color:var(--accent);flex:none">
-          <div class="t-main">
-            <div class="t-text" style="color:var(--sub);text-decoration:line-through">${esc(t.text)}</div>
-            ${t.due?`<div class="t-due">截止 ${t.due}</div>`:''}
-          </div>
-          <span class="acts"><button class="mini del" onclick="delTemp('${t.id}')">删除</button></span>
-        </div>`;
-      });
-      h+='</div>';
-    }
+    h+=`<div class="clist-wrap done-wrap">
+      <div class="clist-head" onclick="toggleTempDone()">
+        <span class="clist-arrow">${tempDoneOpen?'▾':'▸'}</span>
+        <span class="clist-title">已完成 <span class="clist-n">${done.length}</span></span>
+      </div>
+      <div id="tempDoneList" style="display:${tempDoneOpen?'block':'none'}">`;
+    done.forEach(t=>{
+      h+=`<div class="temp-row done-row">
+        <input type="checkbox" checked onchange="toggleTemp('${t.id}',this.checked)" style="margin-top:4px;width:19px;height:19px;accent-color:var(--accent);flex:none">
+        <div class="t-main">
+          <div class="t-text" style="color:var(--sub);text-decoration:line-through">${esc(t.text)}</div>
+          ${t.due?`<div class="t-due">截止 ${t.due}</div>`:''}
+        </div>
+        <span class="acts"><button class="mini del" onclick="delTemp('${t.id}')">删除</button></span>
+      </div>`;
+    });
+    h+='</div></div>';
   }
   h+=`<div class="addrow"><button class="addbtn" onclick="addTemp()">＋ 添加临时任务（可设截止日）</button></div></div></div>`;
   return h;
