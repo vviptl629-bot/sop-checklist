@@ -3,18 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#c1654a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="apple-touch-icon" href="icon-192-v2.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-512-v2.png">
 <title>每日 SOP 核查表</title>
 <style>
 :root{
   --bg:#f3ece3; --card:#fbf7f1; --ink:#3b2f2a; --sub:#8a7a6d;
   --accent:#c1654a; --accent2:#7d8c6a; --ok:#6f8f4e; --line:#e6dccf;
   --dock-h:62px;
+  /* 借鉴之前工作台：分区 chip 配色（生活/咖啡店/外事办/交易/读书） */
+  --life-bg:#eaf3ee;  --life-fg:#1e7a5a;
+  --coffee-bg:#fbf3e4; --coffee-fg:#96681c;
+  --waishi-bg:#eaeeff; --waishi-fg:#3a4f8c;
+  --trade-bg:#e6efee; --trade-fg:#3f6e6a;
+  --study-bg:#e9edf6; --study-fg:#516f9e;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
@@ -24,16 +29,11 @@ body{background:var(--bg);color:var(--ink);font-family:"Iowan Old Style","Palati
 header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 header h1{font-size:23px;margin:0 0 2px;color:var(--accent)}
 header p{margin:0;color:var(--sub);font-size:14px}
-.sync-pill{border:1px solid var(--line);background:#fffdf9;color:var(--sub);border-radius:20px;padding:6px 13px;font-size:13.5px;cursor:pointer;font-family:inherit;white-space:nowrap;flex:none;margin-top:2px}
-.sync-pill.ok{border-color:var(--ok);color:var(--ok)}
-.sync-pill.warn{border-color:#d9b24a;color:#9a7a1e}
-.sync-pill.err{border-color:var(--accent);color:var(--accent);background:#f6e7e0}
 .datebar{display:flex;align-items:center;gap:10px;margin:14px 0 6px;flex-wrap:wrap}
 .datebar input[type=date]{border:1px solid var(--line);border-radius:12px;padding:9px 13px;font-size:15px;background:var(--card);color:var(--ink);font-family:inherit}
 .btn{border:1px solid var(--line);background:var(--card);color:var(--sub);border-radius:12px;padding:9px 15px;font-size:14px;cursor:pointer;font-family:inherit}
 .btn:hover{border-color:var(--accent);color:var(--accent)}
 .btn.warn{color:var(--accent);border-color:#e7c4b8}
-.btn.warn:hover{background:#f6e7e0}
 
 .panel{display:none;animation:fade .18s ease}
 .panel.show{display:block}
@@ -42,13 +42,38 @@ header p{margin:0;color:var(--sub);font-size:14px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:16px}
 .card h2{font-size:19px;margin:0 0 10px;color:var(--accent);display:flex;align-items:center;gap:8px}
 .card h2::before{content:"";width:5px;height:17px;background:var(--accent);border-radius:3px}
-.prog{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:13.5px;color:var(--sub)}
-.prog .track{flex:1;height:7px;background:var(--line);border-radius:6px;overflow:hidden}
-.prog .bar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .25s}
+
+/* ===== 逾期未完成汇总 ===== */
+.overdue{border-color:#e9c9bd}
+.overdue .ov-head{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.overdue .ov-head .ov-arrow{color:var(--accent);font-size:12px;width:14px;text-align:center;flex:none}
+.overdue .ov-title{font-size:16px;font-weight:700;color:var(--accent);flex:1}
+.overdue .ov-badge{font-size:12.5px;font-weight:700;color:#fff;background:var(--accent);border-radius:20px;padding:1px 9px}
+.ov-list{margin-top:10px}
+.ov-row{border:1px solid var(--line);border-radius:11px;padding:9px 12px;margin-bottom:8px;background:#fffdf9;cursor:pointer}
+.ov-row .ov-top{display:flex;align-items:center;gap:8px}
+.ov-tag{font-size:11px;font-weight:700;padding:1px 8px;border-radius:20px}
+.ov-name{flex:1;font-size:15px}
+.ov-num{font-size:15px;font-weight:800;color:var(--accent)}
+.ov-dates{font-size:12.5px;color:var(--sub);margin-top:6px;display:none;line-height:1.7}
+.ov-row.open .ov-dates{display:block}
+.ov-empty{font-size:13px;color:var(--sub);padding:6px 2px}
+
+/* ===== 分区折叠打卡组（借鉴工作台） ===== */
+.area{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:14px;overflow:hidden}
+.area.rest{border-color:#e3ddd2;opacity:.92}
+.area-head{display:flex;align-items:center;gap:10px;padding:13px 15px;cursor:pointer;user-select:none}
+.area-ic{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;flex:none;font-weight:700}
+.area-name{font-size:17px;font-weight:700;color:var(--ink);flex:1;min-width:0}
+.area-rest{font-size:12px;color:var(--sub);background:#f0e3d8;border-radius:20px;padding:2px 10px;font-weight:600}
+.area-count{font-size:13px;font-weight:700;color:var(--sub);background:#f0e3d8;border-radius:20px;padding:2px 10px;white-space:nowrap}
+.area-arrow{color:var(--accent);font-size:13px;width:16px;text-align:center;flex:none}
+.area-body{padding:2px 15px 14px}
+.area-rest-note{font-size:14px;color:var(--sub);padding:10px 2px;display:flex;align-items:center;gap:7px}
+
 ul.clist{list-style:none;margin:0;padding:0}
 ul.clist li{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px dotted var(--line)}
 ul.clist li:last-child{border-bottom:none}
-ul.clist li.editing{align-items:center;flex-wrap:wrap}
 ul.clist input[type=checkbox]{margin-top:4px;width:19px;height:19px;accent-color:var(--accent);flex:none}
 ul.clist label{flex:1;font-size:16px;cursor:pointer;min-width:0;word-break:break-word}
 ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
@@ -56,32 +81,37 @@ ul.clist input:checked + label{color:var(--sub);text-decoration:line-through}
 .mini{border:1px solid var(--line);background:#fffdf9;color:var(--sub);border-radius:9px;padding:5px 11px;font-size:13.5px;cursor:pointer;font-family:inherit}
 .mini:hover{border-color:var(--accent);color:var(--accent)}
 .mini.del:hover{border-color:var(--accent);color:var(--accent);background:#f6e7e0}
-.mini.ghost{color:var(--sub)}
-.addrow{margin-top:12px}
-.addrow .addbtn{display:block;width:100%;text-align:center;font-size:14.5px;padding:10px}
-.clist-wrap{margin-top:6px}
-.clist-title{font-size:14px;font-weight:600;color:var(--accent2);margin:14px 0 6px;display:flex;align-items:center;gap:7px}
+.addrow{margin-top:10px}
+.addrow .addbtn{display:block;width:100%;text-align:center;font-size:14.5px;padding:10px;border:1px dashed var(--line);border-radius:12px;color:var(--accent2);cursor:pointer;font-family:inherit;background:transparent}
+.clist-title{font-size:14px;font-weight:600;color:var(--accent2);margin:12px 0 6px;display:flex;align-items:center;gap:7px}
 .clist-n{display:inline-block;min-width:18px;text-align:center;font-size:12px;color:var(--sub);background:#f0e3d8;border-radius:20px;padding:1px 8px;font-weight:600}
-.clist-head{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;margin:16px 0 6px}
-.clist-head:active{opacity:.7}
+.clist-head{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;margin:12px 0 6px}
 .clist-head .clist-arrow{color:var(--accent);font-size:12px;width:14px;text-align:center;flex:none}
-.done-wrap{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}
-ul.clist li.done{opacity:.72}
+.done-wrap{margin-top:6px}
 ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 
-/* 弹出式输入层（解决小米浏览器键盘遮挡）：固定钉在屏幕顶部，键盘只盖下半屏，输入框始终可见 */
+/* 临时任务 */
+.temp-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px dotted var(--line)}
+.temp-row .t-main{flex:1;min-width:0}
+.temp-row .t-text{font-size:16px;word-break:break-word}
+.temp-row .t-due{font-size:12px;color:var(--sub);margin-top:2px}
+.temp-row.overdue-due .t-due{color:var(--accent);font-weight:700}
+
+/* 弹出式输入层（解决小米浮层键盘遮挡） */
 .modal-mask{position:fixed;inset:0;background:rgba(40,28,20,.45);display:none;z-index:60;align-items:flex-start;justify-content:center;padding:8vh 4vw 0;box-sizing:border-box}
 .modal-mask.show{display:flex}
 .modal-card{background:var(--card);border:1px solid var(--line);border-radius:16px;width:100%;max-width:440px;padding:16px;box-shadow:0 12px 32px rgba(0,0,0,.22)}
 .modal-card h3{margin:0 0 12px;font-size:16px;color:var(--accent);font-weight:600}
-.modal-card input{width:100%;box-sizing:border-box;padding:14px;border:1px solid var(--line);border-radius:10px;font-size:17px;font-family:inherit;background:#fffdf9;color:var(--ink)}
+.modal-card input,.modal-card textarea{width:100%;box-sizing:border-box;padding:14px;border:1px solid var(--line);border-radius:10px;font-size:17px;font-family:inherit;background:#fffdf9;color:var(--ink)}
+.modal-card input[type=date]{font-size:16px}
+.modal-err{color:var(--accent);font-size:12.5px;margin-top:6px;min-height:14px}
 .modal-actions{display:flex;gap:10px;margin-top:14px;justify-content:flex-end}
 
-.field label{display:block;font-size:14.5px;color:var(--accent2);margin-bottom:5px;font-weight:600}
+.field label{display:block;font-size:14.5px;color:var(--accent2);margin-bottom:5px;font-weight:600;margin-top:10px}
 .field textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:15.5px;font-family:inherit;resize:vertical;background:#fffdf9;color:var(--ink)}
 .field textarea:focus{outline:none;border-color:var(--accent)}
 
-/* 多维复盘 */
+/* 多维复盘（沿用 SOP 现有结构） */
 .rv-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .rv-tag{border:1px solid var(--line);background:#fffdf9;color:var(--sub);border-radius:20px;padding:6px 14px;font-size:14.5px;cursor:pointer;font-family:inherit;font-weight:600}
 .rv-tag.active{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -89,7 +119,7 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 .btn-row{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
 .rv-hint{color:var(--accent);font-size:13px;margin-right:auto;font-weight:600}
 .rv-item{border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:9px;font-size:15px;background:#fffdf9}
-.rv-item .tag{margin-right:0;flex-shrink:0}
+.rv-item .tag{margin-right:0;flex-shrink:0;display:inline-block;padding:3px 10px;border-radius:20px;font-size:12.5px;background:#f0e3d8;color:var(--accent);font-weight:600}
 .rv-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .rv-meta{font-size:13px;color:var(--sub);white-space:nowrap}
 .rv-acts{margin-left:auto;display:flex;flex-direction:row;gap:5px}
@@ -99,7 +129,6 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 .rv-empty{color:var(--sub);font-size:13px;padding:6px 0}
 .rv-group{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:#fffdf9;overflow:hidden}
 .rv-group-head{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;user-select:none}
-.rv-group-head:active{background:#f6efe6}
 .rv-group-arrow{color:var(--accent);font-size:12px;width:14px;text-align:center;flex:none}
 .rv-group-date{flex:1;font-size:14.5px;font-weight:600;color:var(--ink)}
 .rv-group-cnt{font-size:12.5px;color:var(--sub);background:#f0e3d8;border-radius:20px;padding:1px 9px;flex:none}
@@ -114,18 +143,12 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 .rv-tool:hover{border-color:var(--accent);color:var(--accent)}
 .rv-switch{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:var(--sub);cursor:pointer;user-select:none}
 .rv-switch input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;margin:0}
-
 .tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12.5px;background:#f0e3d8;color:var(--accent);font-weight:600}
-
 .setting-row{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
 .setting-row label{font-size:15px;color:var(--accent2);font-weight:600}
 .setting-row input,.setting-row textarea{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:15px;font-family:inherit;background:#fffdf9;color:var(--ink)}
 .setting-row .hint{font-size:13px;color:var(--sub)}
 .foot{margin-top:10px;font-size:13px;color:var(--sub)}
-.sync-status{font-size:13.5px;color:var(--sub);min-height:16px;margin-top:4px}
-.sync-status.ok{color:var(--ok)} .sync-status.warn{color:#9a7a1e} .sync-status.err{color:var(--accent)}
-.sync-gist{font-size:13px;color:var(--sub);margin-top:6px}
-.sync-gist a{color:var(--accent)}
 
 /* Dock */
 .dock{position:fixed;left:0;right:0;bottom:0;height:calc(var(--dock-h) + env(safe-area-inset-bottom,0px));
@@ -136,15 +159,11 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 .dock-btn .ic{font-size:18px;line-height:1}
 .dock-btn.active{color:var(--accent)}
 .dock-btn.active::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:26px;height:3px;border-radius:3px;background:var(--accent)}
-
 @media(max-width:560px){
   header h1{font-size:21px}
   .wrap{padding:14px 12px 4px}
   ul.clist label{font-size:16.5px}
-  .dock-btn{font-size:13px}
-  .dock-btn .ic{font-size:18px}
-  .wtab{font-size:12px}
-  .wtab th,.wtab td{padding:6px}
+  .dock-btn{font-size:13px}.dock-btn .ic{font-size:18px}
 }
 </style>
 </head>
@@ -153,9 +172,8 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
   <header>
     <div>
       <h1>每日 SOP 核查表</h1>
-      <p>图表复盘 · 每日必做 · 读书SOP · 多维复盘</p>
+      <p>分区打卡 · 休息自动隐藏 · 逾期汇总 · 临时任务</p>
     </div>
-    <div class="sync-pill" id="syncPill" onclick="showTab('settings')">同步 · 未启用</div>
   </header>
 
   <div class="datebar">
@@ -164,12 +182,9 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
     <button class="btn" onclick="goToday()">回到今天</button>
   </div>
 
-  <!-- 积累 -->
-  <section class="panel show" id="tab-must"></section>
-  <!-- 交易 -->
-  <section class="panel" id="tab-chart"></section>
-  <!-- 读书 -->
-  <section class="panel" id="tab-reading"></section>
+  <!-- 打卡 -->
+  <section class="panel show" id="tab-check"></section>
+
   <!-- 复盘（多维复盘） -->
   <section class="panel" id="tab-log">
     <div class="card">
@@ -179,7 +194,7 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
         <span class="rv-tag active" data-type="life">生活</span>
         <span class="rv-tag" data-type="trade">交易</span>
         <span class="rv-tag" data-type="study">学习</span>
-        <span class="rv-tag" data-type="idea">idea</span>
+        <span class="rv-tag" data-type="idea">想法</span>
         <span class="rv-tag" data-type="think">思考</span>
         <span class="rv-tag" data-type="summary">一日总结</span>
       </div>
@@ -205,40 +220,19 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
       <div id="rvList" style="margin-top:8px"></div>
     </div>
   </section>
+
   <!-- 设置 -->
   <section class="panel" id="tab-settings">
-    <div class="card" id="syncCard">
-      <h2>云端同步</h2>
-      <div class="setting-row">
-        <label>GitHub Token</label>
-        <input type="password" id="syncToken" placeholder="粘贴 GitHub Token（账号 vviptl629-bot）" autocomplete="off">
-        <span class="hint">Token 仅存本机浏览器，用于读写你的私有 Gist。建议用 fine-grained token 并勾选 gist 权限。</span>
-      </div>
-      <div class="setting-row">
-        <label>Gist ID（留空自动新建）</label>
-        <input id="syncGistId" placeholder="留空则首次同步自动创建">
-      </div>
-      <div class="setting-row" style="flex-direction:row;flex-wrap:wrap;gap:8px">
-        <button class="btn" id="syncEnable" style="border-color:var(--accent);color:var(--accent)">启用并同步</button>
-        <button class="btn" id="syncNow">立即同步</button>
-        <button class="btn warn" id="syncClearToken">清除 Token</button>
-      </div>
-      <div class="sync-status" id="syncStatus"></div>
-      <div class="sync-gist" id="syncGistInfo"></div>
-      <div class="foot">每 45 秒自动拉取、改动后 0.8 秒防抖推送。两台设备用相同 Token + Gist ID 即共享同一份数据。</div>
-    </div>
     <div class="card">
       <h2>数据管理</h2>
       <div class="setting-row">
         <button class="btn" onclick="exportJSON()">导出备份（JSON）</button>
-        <span class="hint">部署云端前可先本地备份 / 迁移。</span>
+        <span class="hint">部署时会接入现有 GitHub Gist 云端同步（45s 拉取 / 0.8s 防抖推送）。</span>
       </div>
       <div class="setting-row">
         <label>导入备份（JSON）</label>
         <input type="file" id="importFile" accept="application/json" onchange="importJSON(this)">
-      </div>
-      <div class="setting-row">
-        <span class="hint">也支持导入「每日复盘」的导出文件：会自动按日期合并进各日的多维复盘。</span>
+        <span class="hint">原型预览阶段仅本机存储，导入导出用于你测试数据。</span>
       </div>
       <div class="setting-row">
         <button class="btn warn" onclick="resetAll()">清空全部数据</button>
@@ -248,167 +242,316 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 </div>
 
 <nav class="dock" id="dock">
-  <button class="dock-btn active" data-tab="must"><span class="ic">◆</span>积累</button>
-  <button class="dock-btn" data-tab="chart"><span class="ic">▮</span>交易</button>
-  <button class="dock-btn" data-tab="reading"><span class="ic">▤</span>读书</button>
+  <button class="dock-btn active" data-tab="check"><span class="ic">✓</span>打卡</button>
   <button class="dock-btn" data-tab="log"><span class="ic">✎</span>复盘</button>
   <button class="dock-btn" data-tab="settings"><span class="ic">⚙</span>设置</button>
 </nav>
 
-<script>
-const KEY="sop_proto_C_v2";
-const DEFAULTS={
-  must:{title:"每日必做任务（积累）",items:[
-    "固定时间起床（不熬夜）",
-    "身体锻炼/拉伸 ≥20分钟",
-    "英语学习：赖世雄课程 + 原版书（弱读/连读）",
-    "图表复盘（见交易 Tab）",
-    "阅读推进（记录绝对页码）",
-    "人生母题访谈/写作（或既定创作）",
-    "填写当日多维复盘（复盘 Tab）"
-  ]},
-  chart:{title:"每日图表复盘核查（交易）",items:[
-    "复盘当日主交易时段关键K线（开盘/欧盘/美盘）",
-    "标记≥3个关键信号bar/形态（pin bar、inside bar、趋势bar等）",
-    "图上标注：入场区、止损位、目标位",
-    "对照当日交易计划，核对是否按计划执行",
-    "记录每笔交易的R倍数与纪律遵守情况",
-    "截图归档当日图表（含标注）",
-    "写下1条今日价格行为观察/教训"
-  ]},
-  reading:{title:"读书SOP核查",items:[
-    "明确今日阅读书目与章节",
-    "设定目标：到达绝对页码 ___",
-    "无干扰专注阅读 ≥30分钟",
-    "高亮/批注关键句",
-    "记录「今日已到达绝对页码」：___",
-    "输出一句话总结/收获"
-  ]}
-};
-const REVIEW_TYPES={life:'生活',trade:'交易',study:'学习',idea:'idea',think:'思考',summary:'一日总结'};
-function uid(){return 'i'+Math.random().toString(36).slice(2,9)}
-function seed(){const L={};for(const g in DEFAULTS)L[g]={title:DEFAULTS[g].title,items:DEFAULTS[g].items.map(t=>({id:uid(),text:t}))};return L}
+<!-- 弹出式输入层 -->
+<div class="modal-mask" id="editorModal" onclick="if(event.target===this)closeEditor()">
+  <div class="modal-card">
+    <h3 id="editorTitle">添加项目</h3>
+    <input id="editorInput" type="text" placeholder="输入内容…" autocomplete="off" onkeydown="if(event.key==='Enter')confirmEditor();if(event.key==='Escape')closeEditor()">
+    <div id="editorDueWrap" style="display:none">
+      <label style="display:block;font-size:14.5px;color:var(--accent2);margin:10px 0 5px;font-weight:600">截止日期（可选）</label>
+      <input id="editorDue" type="date">
+    </div>
+    <div class="modal-err" id="editorErr"></div>
+    <div class="modal-actions">
+      <button class="mini" onclick="closeEditor()">取消</button>
+      <button class="mini" style="border-color:var(--accent);color:var(--accent)" onclick="confirmEditor()">确定</button>
+    </div>
+  </div>
+</div>
 
+<script>
+/* ===================== 2026 中国法定节假日 / 补班（中国政府网） ===================== */
+function _range(s,e){const out=[];let d=new Date(s+'T00:00:00');const end=new Date(e+'T00:00:00');while(d<=end){out.push(d.toISOString().slice(0,10));d.setDate(d.getDate()+1);}return out;}
+const HOLIDAYS=new Set([
+  ..._range('2026-01-01','2026-01-03'), // 元旦
+  ..._range('2026-02-15','2026-02-23'), // 春节
+  ..._range('2026-04-04','2026-04-06'), // 清明
+  ..._range('2026-05-01','2026-05-05'), // 劳动
+  ..._range('2026-06-19','2026-06-21'), // 端午
+  ..._range('2026-09-25','2026-09-27'), // 中秋
+  ..._range('2026-10-01','2026-10-07'), // 国庆
+]);
+const MAKEUP=new Set(['2026-01-04','2026-02-14','2026-02-28','2026-05-09','2026-09-20','2026-10-10']); // 补班（周末上班）
+
+/* ===================== 区域定义（借鉴工作台：生活/咖啡店/外事办/交易/读书） ===================== */
+const AREAS=[
+  {id:'waishi', title:'外事办',  icon:'🏢', rest:'holiday_weekend',vars:['--waishi-bg','--waishi-fg']},
+  {id:'coffee', title:'咖啡店',  icon:'☕', rest:'wed_sat',       vars:['--coffee-bg','--coffee-fg']},
+  {id:'life',   title:'生活',    icon:'☀', rest:'none',          vars:['--life-bg','--life-fg']},
+  {id:'trade',  title:'交易·图表复盘', icon:'▮', rest:'none',      vars:['--trade-bg','--trade-fg']},
+  {id:'reading',title:'读书SOP', icon:'▤', rest:'none',          vars:['--study-bg','--study-fg']},
+];
+const TEMP_ID='temp';
+const C=el=>getComputedStyle(document.documentElement).getPropertyValue(el).trim();
+
+function uid(){return 'i'+Math.random().toString(36).slice(2,9)}
+function ymd(d){return d.toISOString().slice(0,10)}
+function parseYMD(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
+function dow(s){return parseYMD(s).getDay()} // 0=周日..6=周六
+function isWeekend(s){const g=dow(s);return g===0||g===6}
+function isHoliday(s){return HOLIDAYS.has(s)}
+function isMakeup(s){return MAKEUP.has(s)}
+function areaResting(areaId,dateStr){
+  const a=AREAS.find(a=>a.id===areaId); const rest=a?a.rest:'none';
+  if(rest==='wed_sat'){const g=dow(dateStr);return g===3||g===6;}                 // 咖啡店：周三、周六休息
+  if(rest==='holiday_weekend'){ if(isMakeup(dateStr))return false; return isHoliday(dateStr)||isWeekend(dateStr); } // 外事办：法定假+双休休息，补班覆盖
+  return false;
+}
+
+/* ===================== 存储 ===================== */
+const KEY='sop_proto_v2';
+const SEED={
+  life:[],
+  coffee:[
+    '16:00 更衣工作交接',
+    '16:05 洗汉堡酱罐+8个罐子，台面清洁',
+    '16:20 到期贴+汇总当日到期货品',
+    '18:30 番茄芥末酱放冰箱',
+    '18:40 吃饭休息',
+    '19:00 洗咖啡机/咖啡隔栏清洁',
+    '20:00 热柜产品丢弃',
+    '20:05 关闭煎炉',
+    '20:30 补货清洁地面',
+    '20:35 茶底液/牛奶分装',
+    '21:00 汽水槽，冰槽清洁',
+    '21:30 拉花壶/蛋挞柜清洁',
+    '21:45 垃圾归类更换新垃圾袋',
+    '21:50 外场清洁/收立牌',
+    '21:55 检查水电关闭情况',
+    '21:58 废弃物品丢弃',
+    '22:00 关门拍照'
+  ],
+  waishi:[
+    '10:00 预约+发票抬头确认',
+    '10:10 核对国家/是否加急',
+    '10:15 每月汇总表格登记',
+    '10:20 结账表格登记',
+    '11:10 递交后回单价格确认',
+    '11:20 递交后回单与信息再确认是否加急',
+    '11:30 取件后快递',
+    '13:30 两表格快递费登记 +结账'
+  ],
+  trade:['图表复盘一日一张 逐日叠加'],
+  reading:[],
+};
+function seedState(){
+  const areas={};
+  AREAS.forEach(a=>{ areas[a.id]={items:SEED[a.id].map(t=>({id:uid(),text:t}))}; });
+  return {areas, days:{}};
+}
 let state={};
 try{state=JSON.parse(localStorage.getItem(KEY))}catch(e){}
-if(!state||!state.lists||!state.days){state={lists:seed(),days:{}}}
+if(!state||!state.areas||!state.days){state=seedState()}
 
 let cur=new Date().toISOString().slice(0,10);
-let liveToday=cur;          // 真实今天，随轮询更新
-let followingToday=true;    // 当前视图是否锁定在"真实今天"
-let activeTab="must";
+let liveToday=cur, followingToday=true, activeTab='check';
 
-function day(){return state.days[cur]||(state.days[cur]={done:{chart:{},must:{},reading:{}},reviews:[]})}
-function save(){localStorage.setItem(KEY,JSON.stringify(state));schedulePush();}
+function day(){return state.days[cur]||(state.days[cur]={done:{life:{},coffee:{},waishi:{},trade:{},reading:{}},reviews:[],temp:[]})}
+function save(){localStorage.setItem(KEY,JSON.stringify(state))}
 function esc(s){return (s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
-function escAttr(s){return esc(s).replace(/"/g,"&quot;")}
 
-let doneOpen={must:false,chart:false,reading:false};
-function itemHtml(g,it,checked){
+/* 折叠状态 */
+let areaOpen={life:true,coffee:true,waishi:true,trade:true,reading:true,temp:true};
+let doneOpen={life:false,coffee:false,waishi:false,trade:false,reading:false};
+let overdueOpen=false;
+
+/* ===================== 打卡渲染 ===================== */
+function itemHtml(areaId,it,checked){
   return `<li class="${checked?'done':''}">
-    <input type="checkbox" ${checked?'checked':''} onchange="toggle('${g}','${it.id}',this.checked)">
+    <input type="checkbox" ${checked?'checked':''} onchange="toggleItem('${areaId}','${it.id}',this.checked)">
     <label>${esc(it.text)}</label>
     <span class="acts">
-      <button class="mini" onclick="openEditor('edit','${g}','${it.id}')">编辑</button>
-      <button class="mini del" onclick="delItem('${g}','${it.id}')">删除</button>
+      <button class="mini" onclick="editItem('${areaId}','${it.id}')">编辑</button>
+      <button class="mini del" onclick="delItem('${areaId}','${it.id}')">删除</button>
     </span></li>`;
 }
-function renderList(g){
-  const panel=document.getElementById('tab-'+g);
-  const list=state.lists[g];
-  const done=day().done[g];
-  const n=list.items.length;
-  const dc=list.items.filter(it=>done[it.id]).length;
-  const pct=n?Math.round(dc/n*100):0;
-  const incomplete=list.items.filter(it=>!done[it.id]);
-  const complete=list.items.filter(it=>done[it.id]);
-  const open=doneOpen[g]!==false;
-  let html=`<div class="card"><h2>${esc(list.title)}</h2>
-    <div class="prog"><div class="track"><div class="bar" style="width:${pct}%"></div></div><span>${dc}/${n}</span></div>`;
-  // 待办（未完成的恒定在顶部）
-  html+=`<div class="clist-wrap"><div class="clist-title">待办 <span class="clist-n">${incomplete.length}</span></div>`;
-  if(incomplete.length){
-    html+='<ul class="clist">'+incomplete.map(it=>itemHtml(g,it,false)).join('')+'</ul>';
-  }else{
-    html+='<div class="rv-empty" style="padding:6px 0">今天都完成了，继续保持 ✦</div>';
-  }
-  html+='</div>';
-  // 已完成（可折叠收纳）
+function renderCheck(){
+  const box=document.getElementById('tab-check');
+  let h='';
+  // 临时任务（置顶）
+  h+=renderTempSection();
+  // 各分区
+  AREAS.forEach(a=>{
+    const items=state.areas[a.id].items||[];
+    const done=day().done[a.id]||{};
+    const resting=areaResting(a.id,cur);
+    const n=items.length;
+    const dc=items.filter(it=>done[it.id]).length;
+    const icBg=C(a.vars[0]), icFg=C(a.vars[1]);
+    h+=`<div class="area ${resting?'rest':''}">
+      <div class="area-head" onclick="toggleArea('${a.id}')">
+        <span class="area-ic" style="background:${icBg};color:${icFg}">${a.icon}</span>
+        <span class="area-name">${a.title}</span>
+        ${resting?'<span class="area-rest">今日休息</span>':`<span class="area-count">${dc}/${n}</span>`}
+        <span class="area-arrow">${areaOpen[a.id]?'▾':'▸'}</span>
+      </div>
+      <div class="area-body" style="display:${areaOpen[a.id]?'block':'none'}">
+        ${resting
+          ? `<div class="area-rest-note">☕ 今日休息，不显示具体任务</div>`
+          : renderAreaList(a.id,items,done)}
+        ${resting?'':`<div class="addrow"><button class="addbtn" onclick="addItem('${a.id}')">＋ 添加项目</button></div>`}
+      </div>
+    </div>`;
+  });
+  // 逾期汇总卡（置底）
+  const ov=computeOverdue();
+  h+=`<div class="card overdue">
+    <div class="ov-head" onclick="toggleOverdue()">
+      <span class="ov-arrow">${overdueOpen?'▾':'▸'}</span>
+      <span class="ov-title">逾期未完成（近 7 天）</span>
+      <span class="ov-badge">${ov.length}</span>
+    </div>
+    <div id="ovList" style="display:${overdueOpen?'block':'none'}">
+      ${ov.length?ov.map(o=>`<div class="ov-row" onclick="this.classList.toggle('open')">
+        <div class="ov-top">
+          <span class="ov-tag" style="background:${C(AREAS.find(a=>a.id===o.area).vars[0])};color:${C(AREAS.find(a=>a.id===o.area).vars[1])}">${o.areaName}</span>
+          <span class="ov-name">${esc(o.text)}</span>
+          <span class="ov-num">${o.missed}</span>
+        </div>
+        <div class="ov-dates">未打卡：${o.dates.join(' · ')}</div>
+      </div>`).join('') : '<div class="ov-empty">近 7 天没有逾期项，保持得不错 ✦</div>'}
+    </div>
+  </div>`;
+  box.innerHTML=h;
+}
+function renderAreaList(areaId,items,done){
+  const incomplete=items.filter(it=>!done[it.id]);
+  const complete=items.filter(it=>done[it.id]);
+  const open=doneOpen[areaId]!==false;
+  let h=`<div class="clist-wrap"><div class="clist-title">待办 <span class="clist-n">${incomplete.length}</span></div>`;
+  h+= incomplete.length ? '<ul class="clist">'+incomplete.map(it=>itemHtml(areaId,it,false)).join('')+'</ul>'
+                         : '<div class="ov-empty" style="padding:6px 0">今天都完成了，继续保持 ✦</div>';
+  h+='</div>';
   if(complete.length){
-    html+=`<div class="clist-wrap done-wrap">
-      <div class="clist-head" onclick="toggleDoneGroup('${g}')">
+    h+=`<div class="clist-wrap done-wrap">
+      <div class="clist-head" onclick="toggleDoneGroup('${areaId}')">
         <span class="clist-arrow">${open?'▾':'▸'}</span>
         <span class="clist-title">已完成 <span class="clist-n">${complete.length}</span></span>
       </div>
-      <ul class="clist" id="doneList-${g}" style="display:${open?'block':'none'}">
-        ${complete.map(it=>itemHtml(g,it,true)).join('')}
+      <ul class="clist" id="doneList-${areaId}" style="display:${open?'block':'none'}">
+        ${complete.map(it=>itemHtml(areaId,it,true)).join('')}
       </ul></div>`;
   }
-  html+=`<div class="addrow"><button class="mini addbtn" onclick="openEditor('add','${g}')">＋ 添加项目</button></div></div>`;
-  panel.innerHTML=html;
+  return h;
 }
-function toggleDoneGroup(g){
-  doneOpen[g]=!(doneOpen[g]!==false);
-  renderList(g);
+function renderTempSection(){
+  const temp=day().temp||[];
+  const open=areaOpen[TEMP_ID]!==false;
+  let h=`<div class="area">
+    <div class="area-head" onclick="toggleArea('${TEMP_ID}')">
+      <span class="area-ic" style="background:#f0e3d8;color:var(--accent)">⚑</span>
+      <span class="area-name">临时任务</span>
+      ${temp.length?`<span class="area-count">${temp.filter(t=>!t.done).length} 待办</span>`:''}
+      <span class="area-arrow">${open?'▾':'▸'}</span>
+    </div>
+    <div class="area-body" style="display:${open?'block':'none'}">`;
+  if(temp.length){
+    h+='<div class="clist-wrap">';
+    temp.forEach(t=>{
+      const overdue = !t.done && t.due && t.due<cur;
+      h+=`<div class="temp-row ${overdue?'overdue-due':''}">
+        <input type="checkbox" ${t.done?'checked':''} onchange="toggleTemp('${t.id}',this.checked)" style="margin-top:4px;width:19px;height:19px;accent-color:var(--accent);flex:none">
+        <div class="t-main">
+          <div class="t-text" style="${t.done?'color:var(--sub);text-decoration:line-through':''}">${esc(t.text)}</div>
+          ${t.due?`<div class="t-due">截止 ${t.due}${overdue?' · 已逾期':''}</div>`:''}
+        </div>
+        <span class="acts"><button class="mini del" onclick="delTemp('${t.id}')">删除</button></span>
+      </div>`;
+    });
+    h+='</div>';
+  }else{
+    h+='<div class="ov-empty" style="padding:6px 0">暂无临时任务</div>';
+  }
+  h+=`<div class="addrow"><button class="addbtn" onclick="addTemp()">＋ 添加临时任务（可设截止日）</button></div></div></div>`;
+  return h;
 }
-function toggle(g,id,v){day().done[g][id]=v; if(v) doneOpen[g]=true; save(); renderList(g)}
-function delItem(g,id){if(confirm('确定删除该项目？')){state.lists[g].items=state.lists[g].items.filter(x=>x.id!==id);for(const d in state.days)delete state.days[d].done[g][id];save();renderList(g)}}
-/* 弹出式输入层：添加 / 编辑 项目都用它，输入框固定钉在屏幕顶部，避开小米等浮层键盘遮挡 */
-var editorMode='add', editorGroup='', editorId='';
-function openEditor(mode,g,id){
-  editorMode=mode; editorGroup=g; editorId=id||'';
-  document.getElementById('editorTitle').textContent = mode==='edit'?'编辑项目':'添加项目';
-  document.getElementById('editorInput').value = mode==='edit' ? ((state.lists[g].items.find(x=>x.id===id)||{}).text||'') : '';
+
+/* 逾期统计：近 7 天（不含今天），跳过该区域休息日，统计未打卡次数 */
+function past7(){
+  const res=[];const t=new Date();t.setDate(t.getDate()-1);
+  for(let i=0;i<7;i++){res.push(ymd(t));t.setDate(t.getDate()-1);}
+  return res;
+}
+function computeOverdue(){
+  const win=past7(); const out=[];
+  AREAS.forEach(a=>{
+    (state.areas[a.id].items||[]).forEach(it=>{
+      let missed=0; const dates=[];
+      win.forEach(d=>{
+        if(areaResting(a.id,d))return;            // 休息日不计入"未完成"
+        const dd=state.days[d]&&state.days[d].done[a.id];
+        if(!(dd&&dd[it.id])){missed++;dates.push(d.slice(5));} // 仅显示 MM-DD
+      });
+      if(missed>0)out.push({area:a.id,areaName:a.title,text:it.text,missed,dates});
+    });
+  });
+  out.sort((x,y)=>y.missed-x.missed);
+  return out;
+}
+
+/* 交互 */
+function toggleArea(id){areaOpen[id]=!(areaOpen[id]!==false);renderCheck()}
+function toggleOverdue(){overdueOpen=!overdueOpen;renderCheck()}
+function toggleDoneGroup(g){doneOpen[g]=!(doneOpen[g]!==false);renderCheck()}
+function toggleItem(areaId,id,v){day().done[areaId][id]=v; if(v){doneOpen[areaId]=true;} save();renderCheck()}
+function delItem(areaId,id){if(confirm('确定删除该项目？')){state.areas[areaId].items=state.areas[areaId].items.filter(x=>x.id!==id);for(const d in state.days)if(state.days[d].done[areaId])delete state.days[d].done[areaId][id];save();renderCheck()}}
+function editItem(areaId,id){const it=state.areas[areaId].items.find(x=>x.id===id);if(!it)return;openEditor('item',areaId,id,it.text)}
+function addItem(areaId){openEditor('item',areaId,null,'')}
+function toggleTemp(id,v){const t=(day().temp||[]).find(x=>x.id===id);if(t){t.done=v;save();renderCheck()}}
+function delTemp(id){if(confirm('删除这条临时任务？')){day().temp=(day().temp||[]).filter(x=>x.id!==id);save();renderCheck()}}
+function addTemp(){openEditor('temp',null,null,'')}
+
+/* ===================== 弹出式输入层 ===================== */
+let editorKind='item', editorArea='', editorId='';
+function openEditor(kind,area,id,val){
+  editorKind=kind; editorArea=area||''; editorId=id||'';
+  document.getElementById('editorTitle').textContent = kind==='temp' ? '添加临时任务' : (id?'编辑项目':'添加项目');
+  document.getElementById('editorInput').value = val||'';
+  document.getElementById('editorDueWrap').style.display = kind==='temp'?'block':'none';
+  document.getElementById('editorDue').value = '';
+  document.getElementById('editorErr').textContent='';
   document.getElementById('editorModal').classList.add('show');
   setTimeout(function(){var i=document.getElementById('editorInput');i.focus();if(i.select)i.select();},60);
 }
-function closeEditor(){document.getElementById('editorModal').classList.remove('show');editorMode='add';editorGroup='';editorId='';}
+function closeEditor(){document.getElementById('editorModal').classList.remove('show');editorKind='item';editorArea='';editorId='';}
 function confirmEditor(){
-  var v=document.getElementById('editorInput').value.trim();
-  if(!v){closeEditor();return;}
-  if(editorMode==='add'){
-    state.lists[editorGroup].items.push({id:uid(),text:v});
+  const v=document.getElementById('editorInput').value.trim();
+  if(!v){document.getElementById('editorErr').textContent='内容不能为空';return;}
+  if(editorKind==='temp'){
+    const due=document.getElementById('editorDue').value||'';
+    day().temp=day().temp||[];
+    day().temp.unshift({id:'t'+Date.now().toString(36),text:v,due:due||'',done:false});
   }else{
-    var it=state.lists[editorGroup].items.find(x=>x.id===editorId);
-    if(it)it.text=v;
+    if(editorId){const it=state.areas[editorArea].items.find(x=>x.id===editorId);if(it)it.text=v;}
+    else state.areas[editorArea].items.push({id:uid(),text:v});
   }
-  save();renderList(editorGroup);closeEditor();
+  save();closeEditor();renderCheck();
 }
 
-function renderAllLists(){['must','chart','reading'].forEach(renderList)}
-
-function setDate(d){cur=d;followingToday=(d===liveToday);rvOpen.add(d);cancelRvEdit();renderAllLists();fillLog()}
-function goToday(){cur=new Date().toISOString().slice(0,10);liveToday=cur;followingToday=true;cancelRvEdit();document.getElementById('dateIn').value=cur;renderAllLists();fillLog()}
-function fillLog(){
-  document.getElementById('dateIn').value=cur;
-  renderReviews();
-}
-/* 跨天自动切换：页面临夜未关时，若当前视图锁定在"今天"，午夜后自动切到新的一天 */
+/* ===================== 日期 / 跨天 ===================== */
+function setDate(d){cur=d;followingToday=(d===liveToday);areaOpen[TEMP_ID]=true;renderCheck();fillLog()}
+function goToday(){cur=new Date().toISOString().slice(0,10);liveToday=cur;followingToday=true;document.getElementById('dateIn').value=cur;renderCheck();fillLog()}
 function checkDayRollover(){
   const t=new Date().toISOString().slice(0,10);
-  if(t===liveToday) return;
-  liveToday=t;
-  if(followingToday){
-    cur=t;
-    const di=document.getElementById('dateIn'); if(di) di.value=t;
-    cancelRvEdit();
-    renderAllLists(); fillLog();
-    try{window.scrollTo({top:0,behavior:'smooth'});}catch(e){}
-  }
+  if(t===liveToday)return; liveToday=t;
+  if(followingToday){cur=t;document.getElementById('dateIn').value=t;renderCheck();fillLog();try{window.scrollTo({top:0,behavior:'smooth'})}catch(e){}}
 }
-function startDayWatcher(){
-  setInterval(checkDayRollover,30000);
-  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) checkDayRollover(); });
-}
+function startDayWatcher(){setInterval(checkDayRollover,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkDayRollover()})}
 
-/* ---------- 多维复盘（六类 + 全部） ---------- */
+/* ===================== 多维复盘（沿用 SOP 现有结构） ===================== */
 let rvType='life', editingRv=null, editingRvDate=null, rvOpen=new Set(), rvOnlyContent=true;
+const REVIEW_TYPES={life:'生活',trade:'交易',study:'学习',idea:'想法',think:'思考',summary:'一日总结'};
 function setRvSubmit(){
-  var el=document.getElementById('rvSubmit');
-  if(editingRv){ el.textContent='保存修改'; return; }
-  if(rvType==='idea'){ el.textContent='记一条想法'; return; }
-  if(rvType==='think'){ el.textContent='记一条思考'; return; }
-  if(rvType==='summary'){ el.textContent='记一日总结'; return; }
+  const el=document.getElementById('rvSubmit');
+  if(editingRv){el.textContent='保存修改';return;}
+  if(rvType==='idea'){el.textContent='记一条想法';return;}
+  if(rvType==='think'){el.textContent='记一条思考';return;}
+  if(rvType==='summary'){el.textContent='记一日总结';return;}
   el.textContent='+ 记一条复盘';
 }
 function applyRvTypeUI(){
@@ -419,359 +562,129 @@ function applyRvTypeUI(){
   document.getElementById('rvSingle').style.display=single?'block':'none';
   if(single){
     document.getElementById('rvSingleLabel').textContent = rvType==='summary'?'这一天，整体上' : (rvType==='idea'?'点子 / 想法':'思考 / 感悟');
-    document.getElementById('rvSingleText').placeholder = rvType==='summary'?'用一段话总结今天：整体做了什么、状态如何、最关键的收获或教训。' : (rvType==='idea'?'记下突然冒出的点子、灵感或想法':'记录一段思考、推演或感悟：触发是什么、怎么想的、得出什么结论。');
+    document.getElementById('rvSingleText').placeholder = rvType==='summary'?'用一段话总结今天。' : (rvType==='idea'?'记下突然冒出的点子、灵感或想法':'记录一段思考、推演或感悟。');
   }
   document.querySelectorAll('.rv-tag').forEach(t=>t.classList.toggle('active',t.dataset.type===rvType));
-  if(!editingRv) setRvSubmit();
+  if(!editingRv)setRvSubmit();
   clearRvInvalid();
 }
 function rvReset(){document.getElementById('rvWhat').value='';document.getElementById('rvGood').value='';document.getElementById('rvBad').value='';document.getElementById('rvSingleText').value='';clearRvInvalid();}
-function clearRvInvalid(){var h=document.getElementById('rvHint');if(h)h.textContent='';var w=document.getElementById('rvWhat');if(w)w.style.borderColor='';var s=document.getElementById('rvSingleText');if(s)s.style.borderColor='';}
+function clearRvInvalid(){const h=document.getElementById('rvHint');if(h)h.textContent='';const w=document.getElementById('rvWhat');if(w)w.style.borderColor='';const s=document.getElementById('rvSingleText');if(s)s.style.borderColor='';}
 function addReview(){
   const single=['idea','think','summary'].includes(rvType);
-  let what, good='', bad='';
-  if(single){ what=document.getElementById('rvSingleText').value.trim(); }
-  else { what=document.getElementById('rvWhat').value.trim(); good=document.getElementById('rvGood').value.trim(); bad=document.getElementById('rvBad').value.trim(); }
-  var hasContent = single ? !!what : (what || good || bad);
+  let what,good='',bad='';
+  if(single){what=document.getElementById('rvSingleText').value.trim();}
+  else{what=document.getElementById('rvWhat').value.trim();good=document.getElementById('rvGood').value.trim();bad=document.getElementById('rvBad').value.trim();}
+  const hasContent=single?!what:(what||good||bad);
   if(!hasContent){
-    var msg = single ? '请先填写内容再保存' : '请至少填写一段内容再保存';
-    var hint=document.getElementById('rvHint'); if(hint)hint.textContent=msg;
-    var fld = single ? document.getElementById('rvSingleText') : document.getElementById('rvWhat');
-    fld.style.borderColor='var(--accent)';
-    try{fld.focus();}catch(e){}
-    return;
+    const msg=single?'请先填写内容再保存':'请至少填写一段内容再保存';
+    const hint=document.getElementById('rvHint');if(hint)hint.textContent=msg;
+    const fld=single?document.getElementById('rvSingleText'):document.getElementById('rvWhat');
+    fld.style.borderColor='var(--accent)';try{fld.focus()}catch(e){}return;
   }
   clearRvInvalid();
-  const revs = editingRv
-    ? ((state.days[editingRvDate]||(state.days[editingRvDate]={done:{chart:{},must:{},reading:{}},reviews:[]})).reviews)
-    : (day().reviews||(day().reviews=[]));
-  if(editingRv){
-    const r=revs.find(x=>x.id===editingRv);
-    if(r){ r.type=rvType; r.what=what; r.good=good; r.bad=bad; r.ts=Date.now(); }
-    editingRv=null; editingRvDate=null; setRvSubmit();
-  }else{
-    revs.unshift({id:'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),type:rvType,what,good,bad,ts:Date.now()});
-  }
-  rvReset();
-  save(); renderReviews();
+  const revs=editingRv?((state.days[editingRvDate]||(state.days[editingRvDate]={done:{life:{},coffee:{},waishi:{},trade:{},reading:{}},reviews:[],temp:[]})).reviews):(day().reviews||(day().reviews=[]));
+  if(editingRv){const r=revs.find(x=>x.id===editingRv);if(r){r.type=rvType;r.what=what;r.good=good;r.bad=bad;r.ts=Date.now();}editingRv=null;editingRvDate=null;setRvSubmit();}
+  else{revs.unshift({id:'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),type:rvType,what,good,bad,ts:Date.now()});}
+  rvReset();save();renderReviews();
 }
-function findReview(id){
-  for(const d in (state.days||{})){
-    const arr=state.days[d].reviews||[];
-    if(arr.some(x=>x.id===id)) return d;
-  }
-  return null;
-}
+function findReview(id){for(const d in (state.days||{})){if((state.days[d].reviews||[]).some(x=>x.id===id))return d;}return null;}
 function rvItemHtml(r,date){
   const label=REVIEW_TYPES[r.type]||'生活';
   const hasGB=(r.good||r.bad);
   let body=esc(r.what||'');
-  if(hasGB){
-    if(r.good) body+='<div class="rv-sub">✔ '+esc(r.good)+'</div>';
-    if(r.bad) body+='<div class="rv-sub bad">✘ '+esc(r.bad)+'</div>';
-  }
-  const t=new Date(r.ts||Date.now());
-  const hh=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
+  if(hasGB){if(r.good)body+='<div class="rv-sub">✔ '+esc(r.good)+'</div>';if(r.bad)body+='<div class="rv-sub bad">✘ '+esc(r.bad)+'</div>';}
+  const t=new Date(r.ts||Date.now());const hh=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
   let acts;
-  if(r.type==='idea' && r.done){
-    acts=`<button class="mini" onclick="editReview('${r.id}')">编辑</button><button class="mini" onclick="undoIdea('${r.id}')">撤销</button><button class="mini del" onclick="delReview('${r.id}')">删除</button>`;
-  } else if(r.type==='idea'){
-    acts=`<button class="mini" onclick="editReview('${r.id}')">编辑</button><button class="mini ok" onclick="markIdeaDone('${r.id}')">落实</button>`;
-  } else {
-    acts=`<button class="mini" onclick="editReview('${r.id}')">编辑</button><button class="mini del" onclick="delReview('${r.id}')">删除</button>`;
-  }
+  if(r.type==='idea'&&r.done){acts=`<button class="mini" onclick="editReview('${r.id}')">编辑</button><button class="mini" onclick="undoIdea('${r.id}')">撤销</button><button class="mini del" onclick="delReview('${r.id}')">删除</button>`;}
+  else if(r.type==='idea'){acts=`<button class="mini" onclick="editReview('${r.id}')">编辑</button><button class="mini ok" onclick="markIdeaDone('${r.id}')">落实</button>`;}
+  else{acts=`<button class="mini" onclick="editReview('${r.id}')">编辑</button><button class="mini del" onclick="delReview('${r.id}')">删除</button>`;}
   const doneCls=(r.type==='idea'&&r.done)?' done':'';
   const badge=(r.type==='idea'&&r.done)?'<span class="rv-done-badge">✓ 已落实</span>':'';
-  return `<div class="rv-item${doneCls}">
-      <div class="rv-head"><span class="tag">${label}</span>${badge}<span class="rv-meta">${date} ${hh}</span>
-        <span class="rv-acts">${acts}</span></div>
-      <div class="rv-body">${body}</div></div>`;
+  return `<div class="rv-item${doneCls}"><div class="rv-head"><span class="tag">${label}</span>${badge}<span class="rv-meta">${date} ${hh}</span><span class="rv-acts">${acts}</span></div><div class="rv-body">${body}</div></div>`;
 }
-function markIdeaDone(id){ const date=findReview(id); if(!date) return; const r=(state.days[date].reviews||[]).find(x=>x.id===id); if(r){ r.done=true; save(); renderReviews(); } }
-function undoIdea(id){ const date=findReview(id); if(!date) return; const r=(state.days[date].reviews||[]).find(x=>x.id===id); if(r){ r.done=false; save(); renderReviews(); } }
-function hasDoneIdeas(){
-  if(rvType!=='idea') return false;
-  const days=state.days||{};
-  for(const d in days){ if((days[d].reviews||[]).some(r=>r.type==='idea'&&r.done)) return true; }
-  return false;
-}
-function editReview(id){
-  const date=findReview(id); if(!date) return;
-  const r=(state.days[date].reviews||[]).find(x=>x.id===id);
-  editingRv=id; editingRvDate=date; rvType=r.type; applyRvTypeUI();
-  const single=['idea','think','summary'].includes(r.type);
-  if(single){ document.getElementById('rvSingleText').value=r.what||''; }
-  else { document.getElementById('rvWhat').value=r.what||''; document.getElementById('rvGood').value=r.good||''; document.getElementById('rvBad').value=r.bad||''; }
-  setRvSubmit();
-  const anchor=document.getElementById('rvForm');
-  if(anchor&&anchor.scrollIntoView){ try{anchor.scrollIntoView({block:'start',behavior:'smooth'});}catch(e){} }
-}
-function cancelRvEdit(){ if(!editingRv) return; editingRv=null; editingRvDate=null; rvReset(); setRvSubmit(); }
+function markIdeaDone(id){const d=findReview(id);if(!d)return;const r=(state.days[d].reviews||[]).find(x=>x.id===id);if(r){r.done=true;save();renderReviews();}}
+function undoIdea(id){const d=findReview(id);if(!d)return;const r=(state.days[d].reviews||[]).find(x=>x.id===id);if(r){r.done=false;save();renderReviews();}}
+function hasDoneIdeas(){if(rvType!=='idea')return false;const days=state.days||{};for(const d in days)if((days[d].reviews||[]).some(r=>r.type==='idea'&&r.done))return true;return false;}
+function editReview(id){const d=findReview(id);if(!d)return;const r=(state.days[d].reviews||[]).find(x=>x.id===id);editingRv=id;editingRvDate=d;rvType=r.type;applyRvTypeUI();const single=['idea','think','summary'].includes(r.type);if(single)document.getElementById('rvSingleText').value=r.what||'';else{document.getElementById('rvWhat').value=r.what||'';document.getElementById('rvGood').value=r.good||'';document.getElementById('rvBad').value=r.bad||'';}setRvSubmit();}
+function cancelRvEdit(){if(!editingRv)return;editingRv=null;editingRvDate=null;rvReset();setRvSubmit();}
 function renderReviews(){
   const days=state.days||{};
-  const dateKeys = rvOnlyContent
-    ? Object.keys(days).filter(d=>(days[d].reviews||[]).length).sort().reverse()
-    : Object.keys(days).sort().reverse();
-  const box=document.getElementById('rvList');
-  let h='';
-  const doneIdeas=[];
+  const dateKeys=rvOnlyContent?Object.keys(days).filter(d=>(days[d].reviews||[]).length).sort().reverse():Object.keys(days).sort().reverse();
+  const box=document.getElementById('rvList');let h='';const doneIdeas=[];
   dateKeys.forEach(d=>{
     const all=(days[d].reviews||[]).slice().sort((a,b)=>b.ts-a.ts);
-    let revs = rvType==='all' ? all : all.filter(r=>r.type===rvType);
-    if(rvOnlyContent && !revs.length) return;
-    if(rvType==='idea'){
-      (revs.filter(r=>r.done)).forEach(r=>doneIdeas.push({r,date:d}));
-      revs=revs.filter(r=>!r.done);
-      if(!revs.length) return;
-    }
-    const open = rvOpen.has(d);
-    const cnt = revs.length;
-    h+=`<div class="rv-group">
-      <div class="rv-group-head" onclick="toggleRvGroup('${d}')">
-        <span class="rv-group-arrow">${open?'▾':'▸'}</span>
-        <span class="rv-group-date">${d}</span>
-        <span class="rv-group-cnt">${cnt}</span>
-      </div>
-      <div class="rv-group-body" id="rvg-${d}" style="display:${open?'block':'none'}">
-        ${revs.map(r=>rvItemHtml(r,d)).join('')}
-      </div></div>`;
+    let revs=rvType==='all'?all:all.filter(r=>r.type===rvType);
+    if(rvOnlyContent&&!revs.length)return;
+    if(rvType==='idea'){(revs.filter(r=>r.done)).forEach(r=>doneIdeas.push({r,date:d}));revs=revs.filter(r=>!r.done);if(!revs.length)return;}
+    const open=rvOpen.has(d);const cnt=revs.length;
+    h+=`<div class="rv-group"><div class="rv-group-head" onclick="toggleRvGroup('${d}')"><span class="rv-group-arrow">${open?'▾':'▸'}</span><span class="rv-group-date">${d}</span><span class="rv-group-cnt">${cnt}</span></div><div class="rv-group-body" id="rvg-${d}" style="display:${open?'block':'none'}">${revs.map(r=>rvItemHtml(r,d)).join('')}</div></div>`;
   });
-  if(rvType==='idea' && doneIdeas.length){
-    const open=rvOpen.has('__done__');
-    h+=`<div class="rv-group rv-done">
-      <div class="rv-group-head" onclick="toggleRvGroup('__done__')">
-        <span class="rv-group-arrow">${open?'▾':'▸'}</span>
-        <span class="rv-group-date">已落实</span>
-        <span class="rv-group-cnt">${doneIdeas.length}</span>
-      </div>
-      <div class="rv-group-body" id="rvg-__done__" style="display:${open?'block':'none'}">
-        ${doneIdeas.map(o=>rvItemHtml(o.r,o.date)).join('')}
-      </div></div>`;
-  }
-  if(!h){ box.innerHTML='<div class="rv-empty">'+(rvType==='all'?'还没有任何复盘记录。':'该分类下还没有复盘记录。')+'</div>'; updateRvTagCounts(); updateRvToggleAllLabel(); return; }
-  box.innerHTML=h;
-  updateRvTagCounts();
-  updateRvToggleAllLabel();
+  if(rvType==='idea'&&doneIdeas.length){const open=rvOpen.has('__done__');h+=`<div class="rv-group rv-done"><div class="rv-group-head" onclick="toggleRvGroup('__done__')"><span class="rv-group-arrow">${open?'▾':'▸'}</span><span class="rv-group-date">已落实</span><span class="rv-group-cnt">${doneIdeas.length}</span></div><div class="rv-group-body" id="rvg-__done__" style="display:${open?'block':'none'}">${doneIdeas.map(o=>rvItemHtml(o.r,o.date)).join('')}</div></div>`;}
+  if(!h){box.innerHTML='<div class="rv-empty">'+(rvType==='all'?'还没有任何复盘记录。':'该分类下还没有复盘记录。')+'</div>';updateRvTagCounts();updateRvToggleAllLabel();return;}
+  box.innerHTML=h;updateRvTagCounts();updateRvToggleAllLabel();
 }
 function toggleRvAll(){
-  const days=state.days||{};
-  const dateKeys = rvOnlyContent
-    ? Object.keys(days).filter(d=>(days[d].reviews||[]).length)
-    : Object.keys(days);
-  const groups=dateKeys.slice();
-  if(hasDoneIdeas()) groups.push('__done__');
-  if(!groups.length) return;
-  const allOpen = groups.every(d=>rvOpen.has(d));
-  groups.forEach(d=>{ if(allOpen) rvOpen.delete(d); else rvOpen.add(d); });
-  renderReviews();
+  const days=state.days||{};const dateKeys=rvOnlyContent?Object.keys(days).filter(d=>(days[d].reviews||[]).length):Object.keys(days);
+  const groups=dateKeys.slice();if(hasDoneIdeas())groups.push('__done__');if(!groups.length)return;
+  const allOpen=groups.every(d=>rvOpen.has(d));groups.forEach(d=>{if(allOpen)rvOpen.delete(d);else rvOpen.add(d);});renderReviews();
 }
 function updateRvToggleAllLabel(){
-  const btn=document.getElementById('rvToggleAll'); if(!btn) return;
-  const days=state.days||{};
-  const dateKeys = rvOnlyContent
-    ? Object.keys(days).filter(d=>(days[d].reviews||[]).length)
-    : Object.keys(days);
-  const groups=dateKeys.slice();
-  if(hasDoneIdeas()) groups.push('__done__');
-  const allOpen = groups.length>0 && groups.every(d=>rvOpen.has(d));
-  btn.textContent = allOpen ? '收起全部' : '展开全部';
+  const btn=document.getElementById('rvToggleAll');if(!btn)return;
+  const days=state.days||{};const dateKeys=rvOnlyContent?Object.keys(days).filter(d=>(days[d].reviews||[]).length):Object.keys(days);
+  const groups=dateKeys.slice();if(hasDoneIdeas())groups.push('__done__');
+  const allOpen=groups.length>0&&groups.every(d=>rvOpen.has(d));btn.textContent=allOpen?'收起全部':'展开全部';
 }
-function setRvOnlyContent(v){
-  rvOnlyContent=v;
-  // 切换时，把所有日期纳入/移出展开集合，保证行为一致
-  const days=state.days||{};
-  const dateKeys = v
-    ? Object.keys(days).filter(d=>(days[d].reviews||[]).length)
-    : Object.keys(days);
-  if(v){ // 仅看有内容：保留当前展开集，但移除空日期
-    Object.keys(days).forEach(d=>{ if(!(days[d].reviews||[]).length) rvOpen.delete(d); });
-  } else { // 显示全部：默认收起所有，避免一次性展开过多
-    rvOpen=new Set();
-  }
-  renderReviews();
-}
-function toggleRvGroup(date){
-  if(rvOpen.has(date)) rvOpen.delete(date); else rvOpen.add(date);
-  const el=document.getElementById('rvg-'+date);
-  if(!el) return;
-  const open=rvOpen.has(date);
-  el.style.display=open?'block':'none';
-  const arrow=el.parentNode.querySelector('.rv-group-arrow');
-  if(arrow) arrow.textContent=open?'▾':'▸';
-}
+function setRvOnlyContent(v){rvOnlyContent=v;const days=state.days||{};if(v){Object.keys(days).forEach(d=>{if(!(days[d].reviews||[]).length)rvOpen.delete(d);});}else{rvOpen=new Set();}renderReviews();}
+function toggleRvGroup(date){if(rvOpen.has(date))rvOpen.delete(date);else rvOpen.add(date);const el=document.getElementById('rvg-'+date);if(!el)return;const open=rvOpen.has(date);el.style.display=open?'block':'none';const arrow=el.parentNode.querySelector('.rv-group-arrow');if(arrow)arrow.textContent=open?'▾':'▸';}
 function updateRvTagCounts(){
-  var revs=[];
-  for(var d in (state.days||{})){ revs=revs.concat(state.days[d].reviews||[]); }
-  var counts={all:revs.length};
-  for(var k in REVIEW_TYPES)counts[k]=0;
-  revs.forEach(function(r){if(counts[r.type]!==undefined)counts[r.type]++;});
-  document.querySelectorAll('.rv-tag').forEach(function(t){
-    var ty=t.dataset.type;
-    var base = ty==='all' ? '全部' : (REVIEW_TYPES[ty]||ty);
-    var c = counts[ty]||0;
-    t.innerHTML = base + (c ? '<span class="cnt">'+c+'</span>' : '');
-  });
+  let revs=[];for(const d in (state.days||{}))revs=revs.concat(state.days[d].reviews||[]);
+  const counts={all:revs.length};for(const k in REVIEW_TYPES)counts[k]=0;
+  revs.forEach(r=>{if(counts[r.type]!==undefined)counts[r.type]++;});
+  document.querySelectorAll('.rv-tag').forEach(t=>{const ty=t.dataset.type;const base=ty==='all'?'全部':(REVIEW_TYPES[ty]||ty);const c=counts[ty]||0;t.innerHTML=base+(c?'<span class="cnt">'+c+'</span>':'');});
 }
-function delReview(id){
-  const date=findReview(id); if(!date) return;
-  if(confirm('删除这条复盘？')){
-    state.days[date].reviews=(state.days[date].reviews||[]).filter(x=>x.id!==id);
-    if(editingRv===id){editingRv=null;rvReset();setRvSubmit();}
-    save(); renderReviews();
-  }
-}
-document.querySelectorAll('.rv-tag').forEach(t=>t.addEventListener('click',()=>{ if(editingRv){editingRv=null;rvReset();setRvSubmit();} rvType=t.dataset.type; applyRvTypeUI(); renderReviews(); }));
+function delReview(id){const d=findReview(id);if(!d)return;if(confirm('删除这条复盘？')){state.days[d].reviews=(state.days[d].reviews||[]).filter(x=>x.id!==id);if(editingRv===id){editingRv=null;rvReset();setRvSubmit();}save();renderReviews();}}
+document.querySelectorAll('.rv-tag').forEach(t=>t.addEventListener('click',()=>{if(editingRv){editingRv=null;rvReset();setRvSubmit();}rvType=t.dataset.type;applyRvTypeUI();renderReviews();}));
 
+/* ===================== Tab / 设置 ===================== */
+function fillLog(){document.getElementById('dateIn').value=cur;renderReviews();}
 function showTab(name){
   activeTab=name;
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
   document.getElementById('tab-'+name).classList.add('show');
   document.querySelectorAll('.dock-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
-  if(['must','chart','reading'].includes(name))renderList(name);
-  if(name==='log')fillLog()
+  if(name==='check')renderCheck();
+  if(name==='log')fillLog();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 document.getElementById('dock').addEventListener('click',e=>{const b=e.target.closest('.dock-btn');if(b)showTab(b.dataset.tab)});
+function exportJSON(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sop-v2-backup-'+cur+'.json';a.click()}
+function importJSON(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(d&&d.areas&&d.days){state=d;save();renderCheck();fillLog();alert('已导入备份');}else alert('文件格式不正确（需 sop-v2 备份）');}catch(e){alert('解析失败：'+(e&&e.message||e));}input.value='';};r.readAsText(f);}
+function resetAll(){if(confirm('确定清空全部数据？此操作不可恢复。')){localStorage.removeItem(KEY);state=seedState();cur=new Date().toISOString().slice(0,10);liveToday=cur;followingToday=true;document.getElementById('dateIn').value=cur;renderCheck();fillLog();}}
 
-function exportJSON(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sop-backup-'+cur+'.json';a.click()}
-function importJSON(input){
-  const f=input.files[0]; if(!f) return;
-  const r=new FileReader();
-  r.onload=()=>{
-    try{
-      const d=JSON.parse(r.result);
-      // 情形 A：SOP 自身备份 → 整份替换
-      if(d && d.lists && d.days){
-        state=d; save(); renderAllLists(); fillLog(); renderReviews();
-        alert('已导入 SOP 备份');
-      }
-      // 情形 B：每日复盘导出 → 合并进各日「多维复盘」（type 对齐：life/trade/study/idea/think/summary）
-      else if(d && (d._app==='daily-review' || Array.isArray(d.entries))){
-        const src=d.entries||[]; let n=0;
-        src.forEach(e=>{
-          if(!e || !e.date || !e.type) return;
-          const dayObj=state.days[e.date] || (state.days[e.date]={done:{chart:{},must:{},reading:{}},reviews:[]});
-          const revs=dayObj.reviews || (dayObj.reviews=[]);
-          revs.push({id:'dr'+e.id, type:e.type, what:e.what||'', good:e.good||'', bad:e.bad||'', done:!!e.done, ts:e.updated||Date.now()});
-          n++;
-        });
-        save(); renderReviews();
-        alert('已合并每日复盘 '+n+' 条到对应日期的多维复盘');
-      }
-      else alert('文件格式不正确');
-    }catch(e){ alert('解析失败：'+(e&&e.message||e)); }
-    input.value='';
-  };
-  r.readAsText(f);
-}
-function resetAll(){if(confirm('确定清空全部数据？此操作不可恢复。')){localStorage.removeItem(KEY);state={lists:seed(),days:{}};cur=new Date().toISOString().slice(0,10);liveToday=cur;followingToday=true;document.getElementById('dateIn').value=cur;renderAllLists();fillLog()}}
-
-/* ---------- GitHub Gist 云端同步（移植自每日复盘工作台） ---------- */
-const SYNC_KEY='sop_sync_v1', SYNC_FILE='sop_checklist_data.json', SYNC_VER=1;
-let sync={enabled:false,token:'',gistId:'',_t:null,_retry:null,_lastOk:0,rev:0,lastRev:0,tokenAt:0,dirty:false};
-try{const _s=JSON.parse(localStorage.getItem(SYNC_KEY)||'{}');sync.enabled=!!_s.enabled;sync.token=_s.token||'';sync.gistId=_s.gistId||'';sync.rev=parseInt(_s.rev||'0',10)||0;sync.lastRev=parseInt(_s.lastRev||'0',10)||0;sync.tokenAt=parseInt(_s.tokenAt||'0',10)||0;}catch(e){}
-function saveSyncCfg(){localStorage.setItem(SYNC_KEY,JSON.stringify({enabled:sync.enabled,token:sync.token,gistId:sync.gistId,rev:sync.rev,lastRev:sync.lastRev,tokenAt:sync.tokenAt}));}
-const TOKEN_TTL_DAYS=90;
-function tokenAgeDays(){return sync.tokenAt?Math.floor((Date.now()-sync.tokenAt)/86400000):0;}
-function tokenExpired(){return tokenAgeDays()>=TOKEN_TTL_DAYS;}
-function syncStatus(msg,cls){const el=document.getElementById('syncStatus');if(el){el.textContent=msg||'';el.className='sync-status'+(cls?' '+cls:'');}const pill=document.getElementById('syncPill');if(pill){pill.textContent=msg?msg.replace(/^已同步 /,'同步 '):'同步 · 未启用';pill.className='sync-pill'+(cls?' '+cls:'');}}
-function payload(){sync.rev=Math.max(sync.rev||0,sync.lastRev||0)+1;return JSON.stringify({v:SYNC_VER,rev:sync.rev,baseRev:sync.lastRev||0,updatedAt:Date.now(),state:state});}
-async function gistReq(method,id,body){const url=id?('https://api.github.com/gists/'+id):'https://api.github.com/gists';const opt={method,headers:{'Authorization':'Bearer '+sync.token,'Content-Type':'application/json','Accept':'application/vnd.github+json'}};if(body)opt.body=JSON.stringify(body);const r=await fetch(url,opt);if(r.status===401)throw new Error('GitHub 401 · Token 已失效，请重新生成带 gist 权限的新 Token');if(r.status===403)throw new Error('GitHub 403 · Token 缺少 gist 权限');if(!r.ok)throw new Error('GitHub '+r.status);return r.json();}
-async function pushSync(){if(!sync.enabled||!sync.token)return;clearTimeout(sync._t);try{const body=payload();if(!sync.gistId){const g=await gistReq('POST',null,{description:'每日SOP核查表 数据同步',public:false,files:{[SYNC_FILE]:{content:body}}});sync.gistId=g.id;saveSyncCfg();}else{await gistReq('PATCH',sync.gistId,{files:{[SYNC_FILE]:{content:body}}});}sync.lastRev=sync.rev;sync.dirty=false;saveSyncCfg();syncStatus('已同步 '+new Date().toLocaleTimeString(),'ok');if(sync._retry){clearInterval(sync._retry);sync._retry=null;}}catch(e){sync._pending=true;if(/40[13]/.test(e&&e.message||'')){if(sync._retry){clearInterval(sync._retry);sync._retry=null;}syncStatus('⚠ '+(e.message||'同步失败'),'err');return;}syncStatus(navigator.onLine===false?'离线，联网后上传':'同步失败，将重试：'+(e&&e.message?e.message:e),'warn');startPendingRetry();}}
-function startPendingRetry(){if(sync._retry)return;sync._retry=setInterval(()=>{if(!sync.enabled||!sync.token){clearInterval(sync._retry);sync._retry=null;return;}pushSync();},6000);}
-function schedulePush(){if(!sync.enabled||!sync.token)return;sync.dirty=true;clearTimeout(sync._t);sync._t=setTimeout(pushSync,800);}
-async function pullSync(silent){if(!sync.enabled||!sync.token||!sync.gistId)return;try{const g=await gistReq('GET',sync.gistId);const f=g.files&&g.files[SYNC_FILE];if(!f||!f.content)return;const d=JSON.parse(f.content);if(d&&d.rev&&d.rev>sync.rev){if(d.state){state=d.state;save();rerenderAll();}sync.rev=d.rev;sync.lastRev=d.rev;saveSyncCfg();}else if(d&&d.rev){sync.lastRev=d.rev;saveSyncCfg();}sync._lastOk=Date.now();if(!silent)syncStatus('已同步云端 '+new Date().toLocaleTimeString(),'ok');}catch(e){if(/40[13]/.test(e&&e.message||'')){if(sync._retry){clearInterval(sync._retry);sync._retry=null;}syncStatus('⚠ '+(e.message||'拉取失败'),'err');return;}if(!silent)syncStatus('拉取失败：'+(e&&e.message?e.message:e),'err');}}
-async function syncNow(){if(!sync.enabled||!sync.token){syncStatus('请先启用同步','err');return;}syncStatus('同步中…');await pullSync();await pushSync();}
-let _autoPull=null;function startAutoPull(){if(_autoPull)return;_autoPull=setInterval(()=>{(async()=>{if(typeof navigator!=='undefined'&&navigator.onLine===false)return;if(sync.dirty){await pushSync();}await pullSync(true);})();},45000);}
-function showGistInfo(){const el=document.getElementById('syncGistInfo');if(!el)return;el.innerHTML=sync.gistId?('已绑定私有 Gist：<a href="https://gist.github.com/'+sync.gistId+'" target="_blank" rel="noopener">'+sync.gistId+'</a><br>在两台设备用<b>相同 Token + 此 ID</b> 即可共享同一份数据。'):'';}
-function rerenderAll(){renderAllLists();fillLog();if(activeTab==='log')renderReviews();}
-document.getElementById('syncEnable').onclick=async()=>{const prev=sync.token;sync.token=document.getElementById('syncToken').value.trim();sync.gistId=document.getElementById('syncGistId').value.trim();if(!sync.token){syncStatus('请先粘贴 Token','err');return;}if(sync.token!==prev)sync.tokenAt=Date.now();sync.enabled=true;saveSyncCfg();syncStatus('同步中…');await syncNow();startAutoPull();showGistInfo();};
-document.getElementById('syncNow').onclick=()=>syncNow();
-document.getElementById('syncClearToken').onclick=()=>{if(window.confirm('清除本机保存的 Token 并停用同步？')){sync.token='';sync.tokenAt=0;sync.enabled=false;sync.gistId='';saveSyncCfg();document.getElementById('syncToken').value='';document.getElementById('syncGistId').value='';showGistInfo();syncStatus('已清除本机 Token');}};
-
-/* ---------- 初始化 ---------- */
+/* ===================== 初始化 ===================== */
 document.getElementById('dateIn').value=cur;
-rvOpen.add(cur);
-liveToday=cur; followingToday=true;
 applyRvTypeUI();
-renderAllLists();fillLog();
+renderCheck();fillLog();
 startDayWatcher();
-if(sync.enabled&&sync.token){syncStatus('同步中…');syncNow();startAutoPull();}
+</script>
+
+<script>
+/* 软键盘遮挡修复（兼容小米/MIUI 浮层键盘，沿用 SOP 既有策略） */
+(function(){
+  var body=document.body, baseline=window.innerHeight;
+  function isField(el){return el&&(el.tagName==='INPUT'||el.tagName==='TEXTAREA')&&!(el.closest&&el.closest('#editorModal'));}
+  function kbHeight(){var kb=0;if(window.visualViewport)kb=Math.max(kb,window.innerHeight-window.visualViewport.height-(window.visualViewport.offsetTop||0));kb=Math.max(kb,baseline-window.innerHeight);return kb;}
+  function adjust(){if(!isField(document.activeElement)){body.style.paddingBottom='';return;}var kb=kbHeight();body.style.paddingBottom=(kb>0?kb+24:Math.round(window.innerHeight*0.5))+'px';}
+  function ensureVisible(el){if(!isField(el))return;adjust();[200,400,650].forEach(function(d){setTimeout(function(){adjust();var rect=el.getBoundingClientRect();var kb=kbHeight();var safe=kb>0?(window.innerHeight-kb-20):Math.round(window.innerHeight*0.5)-16;if(rect.bottom>safe)window.scrollBy(0,rect.bottom-safe);},d);});}
+  document.addEventListener('focusin',function(e){if(isField(e.target)){adjust();ensureVisible(e.target);}});
+  document.addEventListener('focusout',function(){body.style.paddingBottom='';});
+  window.addEventListener('resize',function(){if(Math.abs(window.innerHeight-baseline)>Math.min(baseline,window.innerHeight)*0.3)baseline=window.innerHeight;adjust();if(isField(document.activeElement))ensureVisible(document.activeElement);});
+  if(window.visualViewport){window.visualViewport.addEventListener('resize',function(){adjust();if(isField(document.activeElement))ensureVisible(document.activeElement);});}
+})();
 </script>
 <script>
-/* 软键盘遮挡修复（v3，兼容小米/MIUI 浮层键盘）：
-   小米浏览器多数用「键盘浮层」模式——键盘弹出时 window.innerHeight 与 visualViewport 都不变，
-   因此无法靠高度差判断键盘。策略：
-   - 若可检测到键盘高度（resize 模式 / visualViewport 缩小）→ 输入框滚到键盘上方 20px；
-   - 若检测不到（浮层模式，kb=0）→ 假定键盘占底部约一半，把输入框滚到上半屏可见区；
-   - 聚焦时给 body 加底部留白（= 键盘高度，或浮层模式按半屏），保证最底部输入框也能滚上去；
-   - 在 200/400/650ms 及 visualViewport.resize / window.resize 反复校正。 */
-(function(){
-  var body = document.body;
-  var baseline = window.innerHeight;
-  function isField(el){
-    return el && (el.tagName==='INPUT'||el.tagName==='TEXTAREA')
-      && !(el.closest && el.closest('#editorModal')); // 弹窗内的输入框是固定定位，无需滚动页面
-  }
-  function kbHeight(){
-    var kb = 0;
-    if(window.visualViewport){
-      kb = Math.max(kb, window.innerHeight - window.visualViewport.height - (window.visualViewport.offsetTop||0));
-    }
-    kb = Math.max(kb, baseline - window.innerHeight); // 部分浏览器键盘缩窗触发 window.resize
-    return kb;
-  }
-  function adjust(){
-    if(!isField(document.activeElement)){ body.style.paddingBottom=''; return; }
-    var kb = kbHeight();
-    var pad = kb > 0 ? kb + 24 : Math.round(window.innerHeight * 0.5); // 浮层模式：按半屏留白保证可滚
-    body.style.paddingBottom = pad + 'px';
-  }
-  function ensureVisible(el){
-    if(!isField(el)) return;
-    adjust();
-    [200, 400, 650].forEach(function(d){
-      setTimeout(function(){
-        adjust();
-        var rect = el.getBoundingClientRect();
-        var kb = kbHeight();
-        var safeBottom = kb > 0 ? (window.innerHeight - kb - 20) : Math.round(window.innerHeight * 0.5) - 16;
-        if(rect.bottom > safeBottom){
-          window.scrollBy(0, rect.bottom - safeBottom);
-        }
-      }, d);
-    });
-  }
-  document.addEventListener('focusin', function(e){
-    if(isField(e.target)){ adjust(); ensureVisible(e.target); }
-  });
-  document.addEventListener('focusout', function(){ body.style.paddingBottom=''; });
-  window.addEventListener('resize', function(){
-    // 屏幕方向/尺寸大幅变化时刷新基准高度
-    if(Math.abs(window.innerHeight - baseline) > Math.min(baseline, window.innerHeight)*0.3){ baseline = window.innerHeight; }
-    adjust();
-    if(isField(document.activeElement)) ensureVisible(document.activeElement);
-  });
-  if(window.visualViewport){
-    window.visualViewport.addEventListener('resize', function(){
-      adjust();
-      if(isField(document.activeElement)) ensureVisible(document.activeElement);
-    });
-  }
-})();
-if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./'}).catch(function(e){console.log('SW register failed',e)})});}
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(e){console.log('SW register failed',e);});});}
 </script>
-
-<!-- 弹出式输入层（添加/编辑项目）—— 固定钉在屏幕顶部，避开小米等浮层键盘遮挡 -->
-<div class="modal-mask" id="editorModal" onclick="if(event.target===this)closeEditor()">
-  <div class="modal-card">
-    <h3 id="editorTitle">添加项目</h3>
-    <input id="editorInput" type="text" placeholder="输入内容…" autocomplete="off" onkeydown="if(event.key==='Enter')confirmEditor();if(event.key==='Escape')closeEditor()">
-    <div class="modal-actions">
-      <button class="mini" onclick="closeEditor()">取消</button>
-      <button class="mini" style="border-color:var(--accent);color:var(--accent)" onclick="confirmEditor()">确定</button>
-    </div>
-  </div>
-</div>
 </body>
 </html>
