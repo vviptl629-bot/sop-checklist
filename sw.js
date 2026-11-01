@@ -1,4 +1,4 @@
-const CACHE = 'sop-v15';
+const CACHE = 'sop-v16';
 const ASSETS = [
   './',
   './index.html',
