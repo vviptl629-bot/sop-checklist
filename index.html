@@ -261,6 +261,10 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
         <span class="hint">原型预览阶段仅本机存储，导入导出用于你测试数据。</span>
       </div>
       <div class="setting-row">
+        <button class="btn" onclick="clearChecks()">清空打卡记录（保留复盘）</button>
+        <span class="hint">仅清除各日期的勾选状态，复盘内容保留。用于重置虚假的逾期统计，清完后续会自动重新真实累计。</span>
+      </div>
+      <div class="setting-row">
         <button class="btn warn" onclick="resetAll()">清空全部数据</button>
       </div>
     </div>
@@ -510,7 +514,10 @@ function computeOverdue(){
       let missed=0; const dates=[];
       win.forEach(d=>{
         if(areaResting(a.id,d))return;            // 休息日不计入"未完成"
-        const dd=state.days[d]&&state.days[d].done[a.id];
+        const rec=state.days[d];
+        // 该天整体没有任何打卡记录（用户未使用 App）→ 不计入逾期，避免空白日生成虚假统计
+        if(!rec||!rec.done||Object.keys(rec.done).length===0)return;
+        const dd=rec.done[a.id];
         if(!(dd&&dd[it.id])){missed++;dates.push(d.slice(5));} // 仅显示 MM-DD
       });
       if(missed>0)out.push({area:a.id,areaName:a.title,text:it.text,missed,dates});
@@ -686,6 +693,7 @@ function showTab(name){
 document.getElementById('dock').addEventListener('click',e=>{const b=e.target.closest('.dock-btn');if(b)showTab(b.dataset.tab)});
 function exportJSON(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sop-v2-backup-'+cur+'.json';a.click()}
 function importJSON(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(d&&d.areas&&d.days){state=d;save();renderCheck();fillLog();alert('已导入备份');}else alert('文件格式不正确（需 sop-v2 备份）');}catch(e){alert('解析失败：'+(e&&e.message||e));}input.value='';};r.readAsText(f);}
+function clearChecks(){if(confirm('清空所有打卡记录（仅清除勾选状态，复盘内容保留）？此操作不可恢复。')){for(const d in state.days){if(state.days[d].done)state.days[d].done={};}save();renderCheck();}}
 function resetAll(){if(confirm('确定清空全部数据？此操作不可恢复。')){localStorage.removeItem(KEY);state=seedState();cur=ymd();liveToday=cur;followingToday=true;document.getElementById('dateIn').value=cur;renderCheck();fillLog();}}
 
 /* ---------- GitHub Gist 云端同步（移植自每日复盘工作台 / sop-c，适配 areas 结构） ---------- */
