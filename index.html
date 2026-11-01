@@ -750,11 +750,37 @@ document.getElementById('syncEnable').onclick=async()=>{const prev=sync.token;sy
 document.getElementById('syncNow').onclick=()=>syncNow();
 document.getElementById('syncClearToken').onclick=()=>{if(window.confirm('清除本机保存的 Token 并停用同步？')){sync.token='';sync.tokenAt=0;sync.enabled=false;sync.gistId='';saveSyncCfg();document.getElementById('syncToken').value='';document.getElementById('syncGistId').value='';showGistInfo();syncStatus('已清除本机 Token');}};
 
+/* ===== 复盘只读备份恢复（备份 Gist 代码只读取，永不写入，手机推不坏） ===== */
+const BACKUP_GIST='38c71d99037cbe887237496e8c55cf62', BACKUP_FILE='sop_backup_reviews.json';
+async function restoreFromBackup(){
+  state.days=state.days||{};
+  let n=0;for(const d in state.days){n+=(((state.days[d]||{}).reviews)||[]).length;}
+  if(n>0)return 0;
+  try{
+    const hd={};if(sync.token)hd['Authorization']='Bearer '+sync.token;
+    const r=await fetch('https://api.github.com/gists/'+BACKUP_GIST,{headers:hd});
+    if(!r.ok)return 0;
+    const g=await r.json();const f=g.files&&g.files[BACKUP_FILE];if(!f||!f.content)return 0;
+    const d=JSON.parse(f.content);if(!d||!d.state||!d.state.days)return 0;
+    let added=0;
+    for(const dt in d.state.days){
+      const rr=(d.state.days[dt]||{}).reviews||[];if(!rr.length)continue;
+      state.days[dt]=state.days[dt]||{done:{life:{},coffee:{},waishi:{},trade:{},reading:{}},reviews:[],temp:[]};
+      state.days[dt].reviews=state.days[dt].reviews||[];
+      const ex=new Set(state.days[dt].reviews.map(x=>x.id));
+      for(const rv of rr){if(!ex.has(rv.id)){state.days[dt].reviews.push(rv);ex.add(rv.id);added++;}}
+    }
+    if(added>0){save();renderCheck();fillLog();syncStatus('已从云端备份恢复 '+added+' 条复盘','ok');}
+    return added;
+  }catch(e){return 0;}
+}
+
 /* ===================== 初始化 ===================== */
 document.getElementById('dateIn').value=cur;
 applyRvTypeUI();
 renderCheck();fillLog();
 startDayWatcher();
+restoreFromBackup().then(function(n){if(!n)setTimeout(restoreFromBackup,8000);});
 if(sync.enabled&&sync.token){syncStatus('同步中…');syncNow();startAutoPull();}
 </script>
 
