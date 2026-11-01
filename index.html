@@ -266,7 +266,7 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 
 <script>
 /* ===================== 2026 中国法定节假日 / 补班（中国政府网） ===================== */
-function _range(s,e){const out=[];let d=new Date(s+'T00:00:00');const end=new Date(e+'T00:00:00');while(d<=end){out.push(d.toISOString().slice(0,10));d.setDate(d.getDate()+1);}return out;}
+function _range(s,e){const out=[];let d=new Date(s+'T00:00:00');const end=new Date(e+'T00:00:00');while(d<=end){out.push(ymd(d));d.setDate(d.getDate()+1);}return out;}
 const HOLIDAYS=new Set([
   ..._range('2026-01-01','2026-01-03'), // 元旦
   ..._range('2026-02-15','2026-02-23'), // 春节
@@ -290,7 +290,7 @@ const TEMP_ID='temp';
 const C=el=>getComputedStyle(document.documentElement).getPropertyValue(el).trim();
 
 function uid(){return 'i'+Math.random().toString(36).slice(2,9)}
-function ymd(d){return d.toISOString().slice(0,10)}
+function ymd(d){d=d||new Date();const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+dd}
 function parseYMD(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
 function dow(s){return parseYMD(s).getDay()} // 0=周日..6=周六
 function isWeekend(s){const g=dow(s);return g===0||g===6}
@@ -348,7 +348,7 @@ let state={};
 try{state=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!state||!state.areas||!state.days){state=seedState()}
 
-let cur=new Date().toISOString().slice(0,10);
+let cur=ymd();
 let liveToday=cur, followingToday=true, activeTab='check';
 
 function day(){return state.days[cur]||(state.days[cur]={done:{life:{},coffee:{},waishi:{},trade:{},reading:{}},reviews:[],temp:[]})}
@@ -535,9 +535,9 @@ function confirmEditor(){
 
 /* ===================== 日期 / 跨天 ===================== */
 function setDate(d){cur=d;followingToday=(d===liveToday);areaOpen[TEMP_ID]=true;renderCheck();fillLog()}
-function goToday(){cur=new Date().toISOString().slice(0,10);liveToday=cur;followingToday=true;document.getElementById('dateIn').value=cur;renderCheck();fillLog()}
+function goToday(){cur=ymd();liveToday=cur;followingToday=true;document.getElementById('dateIn').value=cur;renderCheck();fillLog()}
 function checkDayRollover(){
-  const t=new Date().toISOString().slice(0,10);
+  const t=ymd();
   if(t===liveToday)return; liveToday=t;
   if(followingToday){cur=t;document.getElementById('dateIn').value=t;renderCheck();fillLog();try{window.scrollTo({top:0,behavior:'smooth'})}catch(e){}}
 }
@@ -660,7 +660,7 @@ function showTab(name){
 document.getElementById('dock').addEventListener('click',e=>{const b=e.target.closest('.dock-btn');if(b)showTab(b.dataset.tab)});
 function exportJSON(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sop-v2-backup-'+cur+'.json';a.click()}
 function importJSON(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(d&&d.areas&&d.days){state=d;save();renderCheck();fillLog();alert('已导入备份');}else alert('文件格式不正确（需 sop-v2 备份）');}catch(e){alert('解析失败：'+(e&&e.message||e));}input.value='';};r.readAsText(f);}
-function resetAll(){if(confirm('确定清空全部数据？此操作不可恢复。')){localStorage.removeItem(KEY);state=seedState();cur=new Date().toISOString().slice(0,10);liveToday=cur;followingToday=true;document.getElementById('dateIn').value=cur;renderCheck();fillLog();}}
+function resetAll(){if(confirm('确定清空全部数据？此操作不可恢复。')){localStorage.removeItem(KEY);state=seedState();cur=ymd();liveToday=cur;followingToday=true;document.getElementById('dateIn').value=cur;renderCheck();fillLog();}}
 
 /* ===================== 初始化 ===================== */
 document.getElementById('dateIn').value=cur;
