@@ -1,11 +1,12 @@
-const CACHE = 'sop-v31';
+const CACHE = 'sop-v32';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './icon-192-v2.png',
   './icon-512-v2.png',
-  './icon-maskable-512-v2.png'
+  './icon-maskable-512-v2.png',
+  './data/restore.json'
 ];
 
 self.addEventListener('install', event => {
@@ -25,17 +26,24 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
-  // 页面文档（index.html / 根路径）走网络优先：保证 GitHub Pages 更新后及时生效
   const isNav = event.request.mode === 'navigate' ||
                 url.pathname.endsWith('index.html') ||
                 url.pathname === '/' || url.pathname.endsWith('/');
   if (isNav) {
-    event.respondWith(
-      fetch(event.request).then(resp => {
+    // 缓存优先：首屏秒开；后台静默拉新版，下次打开即为最新
+    const network = fetch(event.request).then(resp => {
+      if (resp && resp.ok) {
         const copy = resp.clone();
-        caches.open(CACHE).then(c => c.put(event.request, copy));
-        return resp;
-      }).catch(() => caches.match(event.request).then(c => c || caches.match('./index.html')))
+        caches.open(CACHE).then(c => c.put('./index.html', copy));
+      }
+      return resp;
+    }).catch(() => null);
+    event.waitUntil(network);
+    event.respondWith(
+      caches.match('./index.html').then(cached => {
+        if (cached) return cached;
+        return network.then(r => r || new Response('离线且无缓存', {status: 503, headers: {'Content-Type': 'text/plain; charset=utf-8'}}));
+      })
     );
     return;
   }
