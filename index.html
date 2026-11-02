@@ -95,8 +95,6 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 .imp-banner .imp-head{display:flex;align-items:baseline;gap:7px;padding:10px 14px 8px;font-size:16px;font-weight:800;color:var(--accent)}
 .imp-row{display:flex;align-items:flex-start;gap:10px;padding:9px 14px;border-top:1px dashed var(--accent)}
 .imp-date{font-size:11.5px;color:var(--accent);border:1px solid var(--accent);border-radius:20px;padding:1px 7px;flex:none;margin-top:2px}
-.imp-tag{color:var(--accent);font-weight:800;margin-right:4px}
-.temp-row.imp-task .t-text{font-weight:700;color:var(--accent)}
 .temp-row .t-main{flex:1;min-width:0}
 .temp-row .t-text{font-size:16px;word-break:break-word}
 
@@ -258,12 +256,12 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
       <h2>数据管理</h2>
       <div class="setting-row">
         <button class="btn" onclick="exportJSON()">导出备份（JSON）</button>
-        <span class="hint">已接入 GitHub Gist 云端同步（45s 拉取 / 0.8s 防抖推送），也可本地备份。</span>
+        <span class="hint">云端每小时自动备份一次，切后台或关页面时立即备份；也可在此导出本地备份。</span>
       </div>
       <div class="setting-row">
         <label>导入备份（JSON）</label>
         <input type="file" id="importFile" accept="application/json" onchange="importJSON(this)">
-        <span class="hint">原型预览阶段仅本机存储，导入导出用于你测试数据。</span>
+        <span class="hint">导入会整体覆盖本机数据，请先导出当前版本留底。</span>
       </div>
       <div class="setting-row">
         <button class="btn" onclick="clearChecks()">清空打卡记录（保留复盘）</button>
@@ -393,7 +391,8 @@ function save(){localStorage.setItem(KEY,JSON.stringify(state));scheduleBackup()
 function esc(s){return (s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
 
 /* 折叠状态 */
-let areaOpen={life:true,coffee:true,waishi:true,trade:true,reading:true,temp:true};let tempDoneOpen=false;
+/* 各分类默认折叠：首屏只显示标题 + 重要事项横幅，点一下才展开 */
+let areaOpen={life:false,coffee:false,waishi:false,trade:false,reading:false,temp:false};let tempDoneOpen=false;
 let doneOpen={life:false,coffee:false,waishi:false,trade:false,reading:false};
 let overdueOpen=false;
 
@@ -478,31 +477,34 @@ function renderAreaList(areaId,items,done){
   }
   return h;
 }
-/* ===== 重要事项横幅：跨日期聚合所有标记重要的未完成临时任务，主页顶部展示 ===== */
+/* ===== 重要事项横幅：跨日期聚合全部 ★ 重要临时任务（含已完成），主页顶部唯一入口 ===== */
 function toggleTempAt(d,id,v){const t=((state.days[d]||{}).temp||[]).find(x=>x.id===id);if(t){t.done=v;save();renderCheck()}}
 function delTempAt(d,id){if(confirm('删除这条重要事项？')){const arr=(state.days[d]||{}).temp||[];state.days[d].temp=arr.filter(x=>x.id!==id);state.tempDel=state.tempDel||{};state.tempDel[id]=Date.now();save();renderCheck()}}
+function editTempAt(d,id){const t=((state.days[d]||{}).temp||[]).find(x=>x.id===id);if(t)openEditor('temp',null,id,t.text,d,!!t.imp)}
 function renderImpBanner(){
   const rows=[];
-  for(const dt in (state.days||{})){((state.days[dt]||{}).temp||[]).forEach(t=>{if(t.imp&&!t.done)rows.push({d:dt,t});});}
+  for(const dt in (state.days||{})){((state.days[dt]||{}).temp||[]).forEach(t=>{if(t.imp)rows.push({d:dt,t});});}
   if(!rows.length)return '';
-  rows.sort((a,b)=>a.d<b.d?-1:1);
-  let h=`<div class="imp-banner"><div class="imp-head">★ 重要事项<span style="font-weight:600;font-size:13px">${rows.length} 项待处理</span></div>`;
+  rows.sort((a,b)=>(Number(!!a.t.done)-Number(!!b.t.done))||(a.d<b.d?-1:1));
+  const pending=rows.filter(r=>!r.t.done).length;
+  let h=`<div class="imp-banner"><div class="imp-head">★ 重要事项<span style="font-weight:600;font-size:13px">${pending} 项待处理</span></div>`;
   rows.forEach(({d,t})=>{
     const isToday=d===ymd();
-    h+=`<div class="imp-row">
-      <input type="checkbox" onchange="toggleTempAt('${d}','${t.id}',this.checked)" style="margin-top:3px;width:20px;height:20px;accent-color:var(--accent);flex:none">
+    h+=`<div class="imp-row ${t.done?'done-row':''}">
+      <input type="checkbox" ${t.done?'checked':''} onchange="toggleTempAt('${d}','${t.id}',this.checked)" style="margin-top:3px;width:20px;height:20px;accent-color:var(--accent);flex:none">
       <div class="t-main">
-        <div class="t-text">${esc(t.text)}</div>
+        <div class="t-text" style="${t.done?'color:var(--sub);text-decoration:line-through':''}">${esc(t.text)}</div>
       </div>
       ${isToday?'':`<span class="imp-date">${d.slice(5)}</span>`}
-      <span class="acts"><button class="mini del" onclick="delTempAt('${d}','${t.id}')">删除</button></span>
+      <span class="acts"><button class="mini" onclick="editTempAt('${d}','${t.id}')">编辑</button><button class="mini del" onclick="delTempAt('${d}','${t.id}')">删除</button></span>
     </div>`;
   });
   return h+'</div>';
 }
 
 function renderTempSection(){
-  const temp=day().temp||[];
+  /* ★ 重要项只在顶部横幅展示，这里只列未标★的普通临时任务，避免同一件事出现两遍 */
+  const temp=(day().temp||[]).filter(t=>!t.imp);
   const open=areaOpen[TEMP_ID]!==false;
   const todo=temp.filter(t=>!t.done);
   const done=temp.filter(t=>t.done);
@@ -517,17 +519,17 @@ function renderTempSection(){
   if(todo.length){
     h+='<div class="clist-wrap">';
     todo.forEach(t=>{
-      h+=`<div class="temp-row ${t.imp?'imp-task':''}">
+      h+=`<div class="temp-row">
         <input type="checkbox" onchange="toggleTemp('${t.id}',this.checked)" style="margin-top:4px;width:19px;height:19px;accent-color:var(--accent);flex:none">
         <div class="t-main">
-          <div class="t-text">${t.imp?'<span class="imp-tag">★</span>':''}${esc(t.text)}</div>
+          <div class="t-text">${esc(t.text)}</div>
         </div>
-        <span class="acts"><button class="mini del" onclick="delTemp('${t.id}')">删除</button></span>
+        <span class="acts"><button class="mini" onclick="editTemp('${t.id}')">编辑</button><button class="mini del" onclick="delTemp('${t.id}')">删除</button></span>
       </div>`;
     });
     h+='</div>';
   }else if(!done.length){
-    h+='<div class="ov-empty" style="padding:6px 0">暂无临时任务</div>';
+    h+='<div class="ov-empty" style="padding:6px 0">暂无普通临时任务（★ 重要事项在页面顶部）</div>';
   }
   if(done.length){
     h+=`<div class="clist-wrap done-wrap">
@@ -542,7 +544,7 @@ function renderTempSection(){
         <div class="t-main">
           <div class="t-text" style="color:var(--sub);text-decoration:line-through">${esc(t.text)}</div>
         </div>
-        <span class="acts"><button class="mini del" onclick="delTemp('${t.id}')">删除</button></span>
+        <span class="acts"><button class="mini" onclick="editTemp('${t.id}')">编辑</button><button class="mini del" onclick="delTemp('${t.id}')">删除</button></span>
       </div>`;
     });
     h+='</div></div>';
@@ -590,30 +592,38 @@ function addItem(areaId){openEditor('item',areaId,null,'')}
 function toggleTemp(id,v){const t=(day().temp||[]).find(x=>x.id===id);if(t){t.done=v;save();renderCheck()}}
 function toggleTempDone(){tempDoneOpen=!tempDoneOpen;renderCheck()}
 function delTemp(id){if(confirm('删除这条临时任务？')){day().temp=(day().temp||[]).filter(x=>x.id!==id);state.tempDel=state.tempDel||{};state.tempDel[id]=Date.now();save();renderCheck()}}
-function addTemp(){openEditor('temp',null,null,'')}
+function editTemp(id){const t=(day().temp||[]).find(x=>x.id===id);if(t)openEditor('temp',null,id,t.text,cur,!!t.imp)}
+function addTemp(){openEditor('temp',null,null,'',cur,false)}
 
 /* ===================== 弹出式输入层 ===================== */
-let editorKind='item', editorArea='', editorId='';
-function openEditor(kind,area,id,val){
-  editorKind=kind; editorArea=area||''; editorId=id||'';
-  document.getElementById('editorTitle').textContent = kind==='temp' ? '添加临时任务' : (id?'编辑项目':'添加项目');
+let editorKind='item', editorArea='', editorId='', editorDate='';
+function openEditor(kind,area,id,val,date,imp){
+  editorKind=kind; editorArea=area||''; editorId=id||''; editorDate=date||'';
+  const isTemp=kind==='temp';
+  document.getElementById('editorTitle').textContent = isTemp ? (id?'编辑临时任务':'添加临时任务') : (id?'编辑项目':'添加项目');
   document.getElementById('editorInput').value = val||'';
-  document.getElementById('editorImpWrap').style.display = kind==='temp'?'block':'none';
-  document.getElementById('editorImp').checked = false;
+  document.getElementById('editorImpWrap').style.display = isTemp?'block':'none';
+  document.getElementById('editorImp').checked = isTemp?!!imp:false;
   document.getElementById('editorErr').textContent='';
   document.getElementById('editorModal').classList.add('show');
   setTimeout(function(){var i=document.getElementById('editorInput');i.focus();if(i.select)i.select();},60);
 }
-function closeEditor(){document.getElementById('editorModal').classList.remove('show');editorKind='item';editorArea='';editorId='';}
+function closeEditor(){document.getElementById('editorModal').classList.remove('show');editorKind='item';editorArea='';editorId='';editorDate='';}
 function confirmEditor(){
   const v=document.getElementById('editorInput').value.trim();
   if(!v){document.getElementById('editorErr').textContent='内容不能为空';return;}
   if(editorKind==='temp'){
     const imp=document.getElementById('editorImp').checked;
-    const o={id:'t'+Date.now().toString(36),text:v,due:'',done:false};
-    if(imp)o.imp=true;
-    day().temp=day().temp||[];
-    day().temp.unshift(o);
+    if(editorId){
+      const arr=((state.days[editorDate||cur]||{}).temp)||[];
+      const o=arr.find(x=>x.id===editorId);
+      if(o){o.text=v;if(imp)o.imp=true;else delete o.imp;}
+    }else{
+      const o={id:'t'+Date.now().toString(36),text:v,done:false};
+      if(imp)o.imp=true;
+      day().temp=day().temp||[];
+      day().temp.unshift(o);
+    }
   }else{
     if(editorId){const it=state.areas[editorArea].items.find(x=>x.id===editorId);if(it)it.text=v;}
     else state.areas[editorArea].items.push({id:uid(),text:v});
@@ -622,7 +632,7 @@ function confirmEditor(){
 }
 
 /* ===================== 日期 / 跨天 ===================== */
-function setDate(d){cur=d;followingToday=(d===liveToday);areaOpen[TEMP_ID]=true;renderCheck();fillLog()}
+function setDate(d){cur=d;followingToday=(d===liveToday);areaOpen[TEMP_ID]=false;renderCheck();fillLog()}
 function goToday(){cur=ymd();liveToday=cur;followingToday=true;document.getElementById('dateIn').value=cur;renderCheck();fillLog()}
 function checkDayRollover(){
   const t=ymd();
@@ -856,7 +866,14 @@ document.getElementById('dateIn').value=cur;
 applyRvTypeUI();
 renderCheck();fillLog();
 startDayWatcher();
-restoreFromBackup().then(function(n){if(!n)setTimeout(restoreFromBackup,8000);});
+/* 首屏渲染完再跑恢复逻辑，避免网络请求抢占启动；只在复盘确实为空时重试一次 */
+setTimeout(function(){
+  restoreFromBackup().then(function(added){
+    if(added>0)return;
+    let n=0;for(const d in state.days){n+=(((state.days[d]||{}).reviews)||[]).length;}
+    if(n===0)setTimeout(restoreFromBackup,8000);
+  });
+},120);
 if(sync.enabled&&sync.token){
   /* 新装/清缓存：本机为空则先取回；否则本地为准，按 1 小时节奏备份 */
   if(sync.gistId&&stateEmpty()){(async()=>{try{if(await pullIntoLocal())syncStatus('已从云端取回数据','ok');}catch(e){}})();}
