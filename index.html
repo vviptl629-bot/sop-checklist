@@ -49,7 +49,6 @@ header p{margin:0;color:var(--sub);font-size:14px}
 .overdue .ov-head .ov-arrow{color:var(--accent);font-size:12px;width:14px;text-align:center;flex:none}
 .overdue .ov-title{font-size:16px;font-weight:700;color:var(--accent);flex:1}
 .overdue .ov-badge{font-size:12.5px;font-weight:700;color:#fff;background:var(--accent);border-radius:20px;padding:1px 9px}
-.ov-list{margin-top:10px}
 .ov-row{border:1px solid var(--line);border-radius:11px;padding:9px 12px;margin-bottom:8px;background:#fffdf9;cursor:pointer}
 .ov-row .ov-top{display:flex;align-items:center;gap:8px}
 .ov-tag{font-size:11px;font-weight:700;padding:1px 8px;border-radius:20px}
@@ -665,7 +664,6 @@ function markIdeaDone(id){const d=findReview(id);if(!d)return;const r=(state.day
 function undoIdea(id){const d=findReview(id);if(!d)return;const r=(state.days[d].reviews||[]).find(x=>x.id===id);if(r){r.done=false;save();renderReviews();}}
 function hasDoneIdeas(){if(rvType!=='idea')return false;const days=state.days||{};for(const d in days)if((days[d].reviews||[]).some(r=>r.type==='idea'&&r.done))return true;return false;}
 function editReview(id){const d=findReview(id);if(!d)return;const r=(state.days[d].reviews||[]).find(x=>x.id===id);editingRv=id;editingRvDate=d;rvType=r.type;applyRvTypeUI();const single=['idea','think','summary'].includes(r.type);if(single)document.getElementById('rvSingleText').value=r.what||'';else{document.getElementById('rvWhat').value=r.what||'';document.getElementById('rvGood').value=r.good||'';document.getElementById('rvBad').value=r.bad||'';}setRvSubmit();}
-function cancelRvEdit(){if(!editingRv)return;editingRv=null;editingRvDate=null;rvReset();setRvSubmit();}
 function renderReviews(){
   const days=state.days||{};
   const dateKeys=rvOnlyContent?Object.keys(days).filter(d=>(days[d].reviews||[]).length).sort().reverse():Object.keys(days).sort().reverse();
@@ -726,9 +724,6 @@ const SYNC_KEY='sop_sync_v1', SYNC_FILE='sop_checklist_data.json', SYNC_VER=1;
 let sync={enabled:false,token:'',gistId:'',_t:null,_retry:null,_lastOk:0,rev:0,lastRev:0,tokenAt:0,dirty:false};
 try{const _s=JSON.parse(localStorage.getItem(SYNC_KEY)||'{}');sync.enabled=!!_s.enabled;sync.token=_s.token||'';sync.gistId=_s.gistId||'';sync.rev=parseInt(_s.rev||'0',10)||0;sync.lastRev=parseInt(_s.lastRev||'0',10)||0;sync.tokenAt=parseInt(_s.tokenAt||'0',10)||0;}catch(e){}
 function saveSyncCfg(){localStorage.setItem(SYNC_KEY,JSON.stringify({enabled:sync.enabled,token:sync.token,gistId:sync.gistId,rev:sync.rev,lastRev:sync.lastRev,tokenAt:sync.tokenAt}));}
-const TOKEN_TTL_DAYS=90;
-function tokenAgeDays(){return sync.tokenAt?Math.floor((Date.now()-sync.tokenAt)/86400000):0;}
-function tokenExpired(){return tokenAgeDays()>=TOKEN_TTL_DAYS;}
 function syncStatus(msg,cls){const el=document.getElementById('syncStatus');if(el){el.textContent=msg||'';el.className='sync-status'+(cls?' '+cls:'');}}
 function payload(){sync.rev=Math.max(sync.rev||0,sync.lastRev||0)+1;return JSON.stringify({v:SYNC_VER,rev:sync.rev,baseRev:sync.lastRev||0,updatedAt:Date.now(),state:state});}
 async function gistReq(method,id,body){const url=id?('https://api.github.com/gists/'+id):'https://api.github.com/gists';const opt={method,headers:{'Authorization':'Bearer '+sync.token,'Content-Type':'application/json','Accept':'application/vnd.github+json'}};if(body)opt.body=JSON.stringify(body);const r=await fetch(url,opt);if(r.status===401)throw new Error('GitHub 401 · Token 已失效，请重新生成带 gist 权限的新 Token');if(r.status===403)throw new Error('GitHub 403 · Token 缺少 gist 权限');if(!r.ok)throw new Error('GitHub '+r.status);return r.json();}
