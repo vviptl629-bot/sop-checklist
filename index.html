@@ -479,7 +479,7 @@ function renderAreaList(areaId,items,done){
   return h;
 }
 /* ===== 重要事项横幅：跨日期聚合「未完成」的 ★ 重要项；完成后自动收纳到临时任务已完成 ===== */
-function toggleTempAt(d,id,v){const t=((state.days[d]||{}).temp||[]).find(x=>x.id===id);if(t){t.done=v;if(v&&t.imp){areaOpen[TEMP_ID]=true;tempDoneOpen=true;}save();renderCheck()}}
+function toggleTempAt(d,id,v){const t=((state.days[d]||{}).temp||[]).find(x=>x.id===id);if(t){t.done=v;save();renderCheck()}}
 function delTempAt(d,id){if(confirm('删除这条任务？')){const arr=(state.days[d]||{}).temp||[];state.days[d].temp=arr.filter(x=>x.id!==id);state.tempDel=state.tempDel||{};state.tempDel[id]=Date.now();save();renderCheck()}}
 function editTempAt(d,id){const t=((state.days[d]||{}).temp||[]).find(x=>x.id===id);if(t)openEditor('temp',null,id,t.text,d,!!t.imp)}
 function renderImpBanner(){
