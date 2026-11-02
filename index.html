@@ -99,8 +99,6 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 .temp-row.imp-task .t-text{font-weight:700;color:var(--accent)}
 .temp-row .t-main{flex:1;min-width:0}
 .temp-row .t-text{font-size:16px;word-break:break-word}
-.temp-row .t-due{font-size:12px;color:var(--sub);margin-top:2px}
-.temp-row.overdue-due .t-due{color:var(--accent);font-weight:700}
 
 /* 弹出式输入层（解决小米浮层键盘遮挡） */
 .modal-mask{position:fixed;inset:0;background:rgba(40,28,20,.45);display:none;z-index:60;align-items:flex-start;justify-content:center;padding:8vh 4vw 0;box-sizing:border-box}
@@ -288,14 +286,10 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
   <div class="modal-card">
     <h3 id="editorTitle">添加项目</h3>
     <input id="editorInput" type="text" placeholder="输入内容…" autocomplete="off" onkeydown="if(event.key==='Enter')confirmEditor();if(event.key==='Escape')closeEditor()">
-    <div id="editorDueWrap" style="display:none">
-      <label style="display:block;font-size:14.5px;color:var(--accent2);margin:10px 0 5px;font-weight:600">截止日期（可选）</label>
-      <input id="editorDue" type="date">
-    </div>
     <div id="editorImpWrap" style="display:none">
       <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:14.5px;color:var(--accent2);font-weight:600;cursor:pointer">
         <input type="checkbox" id="editorImp" style="width:18px;height:18px;accent-color:var(--accent)">
-        ❗ 标记为重要（主页顶部醒目展示，可立即勾掉）
+        ★ 重要
       </label>
     </div>
     <div class="modal-err" id="editorErr"></div>
@@ -491,15 +485,13 @@ function renderImpBanner(){
   for(const dt in (state.days||{})){((state.days[dt]||{}).temp||[]).forEach(t=>{if(t.imp&&!t.done)rows.push({d:dt,t});});}
   if(!rows.length)return '';
   rows.sort((a,b)=>a.d<b.d?-1:1);
-  let h=`<div class="imp-banner"><div class="imp-head">❗ 重要事项<span style="font-weight:600;font-size:13px">${rows.length} 项待处理</span></div>`;
+  let h=`<div class="imp-banner"><div class="imp-head">★ 重要事项<span style="font-weight:600;font-size:13px">${rows.length} 项待处理</span></div>`;
   rows.forEach(({d,t})=>{
-    const overdue=t.due&&t.due<ymd();
     const isToday=d===ymd();
     h+=`<div class="imp-row">
       <input type="checkbox" onchange="toggleTempAt('${d}','${t.id}',this.checked)" style="margin-top:3px;width:20px;height:20px;accent-color:var(--accent);flex:none">
       <div class="t-main">
         <div class="t-text">${esc(t.text)}</div>
-        ${t.due?`<div class="t-due"${overdue?' style="color:#c0392b;font-weight:700"':''}>截止 ${t.due}${overdue?' · 已逾期':''}</div>`:''}
       </div>
       ${isToday?'':`<span class="imp-date">${d.slice(5)}</span>`}
       <span class="acts"><button class="mini del" onclick="delTempAt('${d}','${t.id}')">删除</button></span>
@@ -524,12 +516,10 @@ function renderTempSection(){
   if(todo.length){
     h+='<div class="clist-wrap">';
     todo.forEach(t=>{
-      const overdue = t.due && t.due<cur;
-      h+=`<div class="temp-row ${t.imp?'imp-task':''} ${overdue?'overdue-due':''}">
+      h+=`<div class="temp-row ${t.imp?'imp-task':''}">
         <input type="checkbox" onchange="toggleTemp('${t.id}',this.checked)" style="margin-top:4px;width:19px;height:19px;accent-color:var(--accent);flex:none">
         <div class="t-main">
-          <div class="t-text">${t.imp?'<span class="imp-tag">❗</span>':''}${esc(t.text)}</div>
-          ${t.due?`<div class="t-due">截止 ${t.due}${overdue?' · 已逾期':''}</div>`:''}
+          <div class="t-text">${t.imp?'<span class="imp-tag">★</span>':''}${esc(t.text)}</div>
         </div>
         <span class="acts"><button class="mini del" onclick="delTemp('${t.id}')">删除</button></span>
       </div>`;
@@ -550,14 +540,13 @@ function renderTempSection(){
         <input type="checkbox" checked onchange="toggleTemp('${t.id}',this.checked)" style="margin-top:4px;width:19px;height:19px;accent-color:var(--accent);flex:none">
         <div class="t-main">
           <div class="t-text" style="color:var(--sub);text-decoration:line-through">${esc(t.text)}</div>
-          ${t.due?`<div class="t-due">截止 ${t.due}</div>`:''}
         </div>
         <span class="acts"><button class="mini del" onclick="delTemp('${t.id}')">删除</button></span>
       </div>`;
     });
     h+='</div></div>';
   }
-  h+=`<div class="addrow"><button class="addbtn" onclick="addTemp()">＋ 添加临时任务（可设截止日）</button></div></div></div>`;
+  h+=`<div class="addrow"><button class="addbtn" onclick="addTemp()">＋ 添加临时任务</button></div></div></div>`;
   return h;
 }
 
@@ -608,8 +597,6 @@ function openEditor(kind,area,id,val){
   editorKind=kind; editorArea=area||''; editorId=id||'';
   document.getElementById('editorTitle').textContent = kind==='temp' ? '添加临时任务' : (id?'编辑项目':'添加项目');
   document.getElementById('editorInput').value = val||'';
-  document.getElementById('editorDueWrap').style.display = kind==='temp'?'block':'none';
-  document.getElementById('editorDue').value = '';
   document.getElementById('editorImpWrap').style.display = kind==='temp'?'block':'none';
   document.getElementById('editorImp').checked = false;
   document.getElementById('editorErr').textContent='';
@@ -621,9 +608,8 @@ function confirmEditor(){
   const v=document.getElementById('editorInput').value.trim();
   if(!v){document.getElementById('editorErr').textContent='内容不能为空';return;}
   if(editorKind==='temp'){
-    const due=document.getElementById('editorDue').value||'';
     const imp=document.getElementById('editorImp').checked;
-    const o={id:'t'+Date.now().toString(36),text:v,due:due||'',done:false};
+    const o={id:'t'+Date.now().toString(36),text:v,due:'',done:false};
     if(imp)o.imp=true;
     day().temp=day().temp||[];
     day().temp.unshift(o);
