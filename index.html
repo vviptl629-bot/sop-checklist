@@ -479,7 +479,7 @@ function renderAreaList(areaId,items,done){
 }
 /* ===== 重要事项横幅：跨日期聚合所有标记重要的未完成临时任务，主页顶部展示 ===== */
 function toggleTempAt(d,id,v){const t=((state.days[d]||{}).temp||[]).find(x=>x.id===id);if(t){t.done=v;save();renderCheck()}}
-function delTempAt(d,id){if(confirm('删除这条重要事项？')){const arr=(state.days[d]||{}).temp||[];state.days[d].temp=arr.filter(x=>x.id!==id);save();renderCheck()}}
+function delTempAt(d,id){if(confirm('删除这条重要事项？')){const arr=(state.days[d]||{}).temp||[];state.days[d].temp=arr.filter(x=>x.id!==id);state.tempDel=state.tempDel||{};state.tempDel[id]=Date.now();save();renderCheck()}}
 function renderImpBanner(){
   const rows=[];
   for(const dt in (state.days||{})){((state.days[dt]||{}).temp||[]).forEach(t=>{if(t.imp&&!t.done)rows.push({d:dt,t});});}
@@ -588,7 +588,7 @@ function editItem(areaId,id){const it=state.areas[areaId].items.find(x=>x.id===i
 function addItem(areaId){openEditor('item',areaId,null,'')}
 function toggleTemp(id,v){const t=(day().temp||[]).find(x=>x.id===id);if(t){t.done=v;save();renderCheck()}}
 function toggleTempDone(){tempDoneOpen=!tempDoneOpen;renderCheck()}
-function delTemp(id){if(confirm('删除这条临时任务？')){day().temp=(day().temp||[]).filter(x=>x.id!==id);save();renderCheck()}}
+function delTemp(id){if(confirm('删除这条临时任务？')){day().temp=(day().temp||[]).filter(x=>x.id!==id);state.tempDel=state.tempDel||{};state.tempDel[id]=Date.now();save();renderCheck()}}
 function addTemp(){openEditor('temp',null,null,'')}
 
 /* ===================== 弹出式输入层 ===================== */
@@ -766,7 +766,10 @@ function schedulePush(){if(!sync.enabled||!sync.token||sync._suppress)return;syn
   // 写入节流：GitHub Gist 写入限 100 次/小时，最少间隔 60s 合并推送，期间改动只标 dirty 不丢
   const GAP=60000, wait=Math.max(800,(sync._lastPush||0)+GAP-Date.now());
   sync._t=setTimeout(pushSync,wait);}
-function mergeRemote(remote){if(!remote||!remote.days)return;if(remote.areas){state.areas=state.areas||{};for(const k in remote.areas){if(!state.areas[k]){state.areas[k]=remote.areas[k];continue;}const li=state.areas[k].items||[],ri=remote.areas[k].items||[];const ids=new Set(li.map(x=>x.id));state.areas[k].items=li.concat(ri.filter(x=>!ids.has(x.id)));}}state.days=state.days||{};const rd=remote.days||{};for(const dt of Object.keys(state.days)){const loc=state.days[dt],rem=rd[dt];if(!rem)continue;loc.reviews=loc.reviews||[];const ids=new Set(loc.reviews.map(r=>r.id));for(const r of (rem.reviews||[])){if(!ids.has(r.id)){loc.reviews.push(r);ids.add(r.id);}}const lc=loc.clearedDone||0,rc=rem.clearedDone||0;if(rc>lc){loc.clearedDone=rc;loc.done={};}else if(lc){loc.done=Object.assign({},loc.done||{});}else{const lt=Object.keys(loc.done||{}).some(k=>Object.keys(loc.done[k]||{}).length);loc.done=Object.assign({},lt?(rem.done||{}):{},loc.done||{});}loc.temp=loc.temp||[];const tids=new Set(loc.temp.map(t=>t.id));for(const t of (rem.temp||[])){if(!tids.has(t.id)){loc.temp.push(t);tids.add(t.id);}}}for(const dt of Object.keys(rd)){if(!state.days[dt]){const rr=Object.assign({},rd[dt]);rr.done={};if(state.clearedAt)rr.clearedDone=state.clearedAt;state.days[dt]=rr;}}}
+function mergeRemote(remote){if(!remote||!remote.days)return;state.tempDel=state.tempDel||{};/* 墓碑：已删除的临时任务 id->ts，防止云端并集复活 */
+const rtd=remote.tempDel||{};for(const k in rtd){if(!state.tempDel[k]||rtd[k]>state.tempDel[k])state.tempDel[k]=rtd[k];}
+const now=Date.now();for(const k in state.tempDel){if(now-state.tempDel[k]>7776000000)delete state.tempDel[k];}
+if(remote.areas){state.areas=state.areas||{};for(const k in remote.areas){if(!state.areas[k]){state.areas[k]=remote.areas[k];continue;}const li=state.areas[k].items||[],ri=remote.areas[k].items||[];const ids=new Set(li.map(x=>x.id));state.areas[k].items=li.concat(ri.filter(x=>!ids.has(x.id)));}}state.days=state.days||{};const rd=remote.days||{};for(const dt of Object.keys(state.days)){const loc=state.days[dt],rem=rd[dt];if(!rem)continue;loc.reviews=loc.reviews||[];const ids=new Set(loc.reviews.map(r=>r.id));for(const r of (rem.reviews||[])){if(!ids.has(r.id)){loc.reviews.push(r);ids.add(r.id);}}const lc=loc.clearedDone||0,rc=rem.clearedDone||0;if(rc>lc){loc.clearedDone=rc;loc.done={};}else if(lc){loc.done=Object.assign({},loc.done||{});}else{const lt=Object.keys(loc.done||{}).some(k=>Object.keys(loc.done[k]||{}).length);loc.done=Object.assign({},lt?(rem.done||{}):{},loc.done||{});}loc.temp=loc.temp||[];loc.temp=loc.temp.filter(t=>!state.tempDel[t.id]);const tids=new Set(loc.temp.map(t=>t.id));for(const t of (rem.temp||[])){if(!tids.has(t.id)&&!state.tempDel[t.id]){loc.temp.push(t);tids.add(t.id);}}}for(const dt of Object.keys(rd)){if(!state.days[dt]){const rr=Object.assign({},rd[dt]);rr.done={};rr.temp=(rr.temp||[]).filter(t=>!state.tempDel[t.id]);if(state.clearedAt)rr.clearedDone=state.clearedAt;state.days[dt]=rr;}}}
 async function pullSync(silent){if(!sync.enabled||!sync.token||!sync.gistId)return;try{const g=await gistReq('GET',sync.gistId);const f=g.files&&g.files[SYNC_FILE];if(!f||!f.content)return;const d=JSON.parse(f.content);if(d&&d.state){mergeRemote(d.state);save();renderCheck();fillLog();if(d.rev){sync.lastRev=d.rev;if(d.rev>sync.rev)sync.rev=d.rev;saveSyncCfg();}sync._lastOk=Date.now();if(!silent)syncStatus('已同步云端 '+new Date().toLocaleTimeString(),'ok');}}catch(e){if(/401/.test(e&&e.message||'')){if(sync._retry){clearInterval(sync._retry);sync._retry=null;}syncStatus('⚠ '+(e.message||'拉取失败'),'err');return;}if(!silent)syncStatus('拉取失败：'+(e&&e.message?e.message:e),'err');}}
 async function syncNow(){if(!sync.enabled||!sync.token){syncStatus('请先启用同步','err');return;}syncStatus('同步中…');await pullSync();await pushSync();}
 let _autoPull=null;function startAutoPull(){if(_autoPull)return;_autoPull=setInterval(()=>{(async()=>{if(typeof navigator!=='undefined'&&navigator.onLine===false)return;if(sync.dirty){await pushSync();}await pullSync(true);})();},300000);}
