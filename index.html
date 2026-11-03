@@ -198,6 +198,25 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 .st-line .track i{display:block;height:100%;background:var(--accent2);border-radius:5px}
 .st-line .pc{width:38px;text-align:right;color:var(--sub)}
 .st-foot{font-size:12.5px;color:var(--sub);margin-top:14px;line-height:1.7}
+/* 兑换页 (sop-v37) */
+.ex-ring{width:144px;height:144px;border-radius:50%;margin:14px auto;display:flex;align-items:center;justify-content:center}
+.ex-ring span{width:110px;height:110px;border-radius:50%;background:#fffdf9;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:13px;color:var(--sub);line-height:1.5}
+.ex-ring b{font-size:22px;color:var(--accent);display:block;margin-bottom:2px}
+.ex-note{font-size:13px;color:var(--sub);margin:4px 0 14px;line-height:1.6}
+.ex-reward{border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:10px;background:#fffdf9}
+.ex-r-top{display:flex;align-items:center;gap:8px}
+.ex-ic{font-size:18px;flex:none}
+.ex-name{flex:1;font-size:15px;color:var(--ink);font-weight:600;min-width:0;overflow-wrap:anywhere}
+.ex-pill{font-size:11.5px;font-weight:700;border-radius:10px;padding:2px 9px;background:var(--accent);color:#1a120c;flex:none}
+.ex-pill.ok{background:var(--ok,#7bbf8a);color:#0e1a10}
+.ex-x{color:var(--sub);cursor:pointer;font-size:18px;font-weight:700;flex:none;padding:0 4px;line-height:1}
+.ex-x:hover{color:var(--accent)}
+.ex-bar{height:8px;background:var(--line);border-radius:6px;overflow:hidden;margin-top:9px}
+.ex-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.ex-add{display:flex;gap:8px;margin-top:6px}
+.ex-add input{flex:1;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px;font-family:inherit;background:#fffdf9;color:var(--ink);min-width:0}
+.ex-add .btn{width:auto;padding:11px 18px;margin:0;font-size:14px;flex:none}
+.ex-hint{font-size:12px;color:var(--sub);margin-top:8px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -258,6 +277,9 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
   <!-- 统计 (sop-v35) -->
   <section class="panel" id="tab-stats"></section>
 
+  <!-- 兑换 (sop-v37) -->
+  <section class="panel" id="tab-exchange"></section>
+
   <!-- 设置 -->
   <section class="panel" id="tab-settings">
     <div class="setting-back"><button class="btn" onclick="showTab('check')">← 返回打卡</button></div>
@@ -308,6 +330,7 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
   <button class="dock-btn active" data-tab="check"><span class="ic">✓</span>打卡</button>
   <button class="dock-btn" data-tab="log"><span class="ic">✎</span>复盘</button>
   <button class="dock-btn" data-tab="stats"><span class="ic">▤</span>统计</button>
+  <button class="dock-btn" data-tab="exchange"><span class="ic">🎁</span>兑换</button>
 </nav>
 
 <!-- 弹出式输入层 -->
@@ -412,6 +435,7 @@ function seedState(){
 let state={};
 try{state=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!state||!state.areas||!state.days){state=seedState()}
+if(!state.rewards)state.rewards=seedRewards();
 
 let cur=ymd();
 let liveToday=cur, followingToday=true, activeTab='check';
@@ -687,7 +711,53 @@ function renderStats(){
   box.innerHTML=h;
 }
 
-/* 交互 */
+/* ===================== 兑换页 (sop-v37) ===================== */
+/* 积分来源：累计复盘条数（每条复盘=1 分，含想法/思考/一日总结/普通复盘）。数据现成，零新增字段。 */
+function reviewPoints(){
+  let n=0;for(const d in (state.days||{})){const v=state.days[d]||{};n+=((v.reviews)||[]).length;}
+  return n;
+}
+function seedRewards(){return [
+  {id:'rw1',icon:'🥤',name:'水杯',cost:100},
+  {id:'rw2',icon:'📘',name:'交易书 ×1',cost:300},
+  {id:'rw3',icon:'🎓',name:'PA 课程',cost:500},
+];}
+function ensureRewards(){if(!state.rewards||!Array.isArray(state.rewards))state.rewards=seedRewards();}
+function renderExchange(){
+  const box=document.getElementById('tab-exchange');if(!box)return;
+  ensureRewards();
+  const pts=reviewPoints(),rs=state.rewards||[];
+  const next=rs.filter(r=>r.cost>pts).sort((a,b)=>a.cost-b.cost)[0];
+  const ringPct=next?Math.min(100,Math.round(pts/next.cost*100)):100;
+  let h='<div class="card"><h2>兑换 · 我的欲望清单</h2>';
+  h+=`<div class="ex-ring" style="background:conic-gradient(var(--accent) 0 ${ringPct}%, var(--line) ${ringPct}% 100%)"><span>已攒 <b>${pts}</b> 分${next?`<br>距 ${esc(next.name)} 还差 ${next.cost-pts}`:`<br>已全部解锁 🎉`}</span></div>`;
+  h+=`<div class="ex-note">每记 1 条复盘 = 1 分。门槛到达即解锁，积分不清零，可继续冲下一档。</div>`;
+  if(!rs.length)h+='<div class="ov-empty" style="padding:8px 0">还没有目标，下面添加你的欲望清单 🎯</div>';
+  rs.forEach(r=>{
+    const pct=Math.max(0,Math.min(100,Math.round(pts/r.cost*100)));
+    const got=pts>=r.cost;
+    h+=`<div class="ex-reward">
+      <div class="ex-r-top"><span class="ex-ic">${r.icon||'🎁'}</span><span class="ex-name">${esc(r.name)}</span>${got?'<span class="ex-pill ok">已解锁</span>':`<span class="ex-pill">差 ${r.cost-pts}</span>`}<span class="ex-x" onclick="delReward('${r.id}')" title="删除">×</span></div>
+      <div class="ex-bar"><i style="width:${pct}%"></i></div>
+    </div>`;
+  });
+  h+=`<div class="ex-add"><input id="exInput" placeholder="如：机械键盘 | 500" autocomplete="off" onkeydown="if(event.key==='Enter')addReward()"><button class="btn" style="border-color:var(--accent);color:var(--accent)" onclick="addReward()">添加</button></div>`;
+  h+=`<div class="ex-hint">格式：名称，或 名称|门槛分（不填默认 100）。已解锁的奖励会自动点亮，可随时删除重设。奖励随云端备份同步。</div>`;
+  h+='</div>';
+  box.innerHTML=h;
+}
+function addReward(){
+  const inp=document.getElementById('exInput');if(!inp)return;
+  const v=inp.value.trim();if(!v)return;
+  const idx=v.indexOf('|');const name=idx<0?v:v.slice(0,idx).trim();
+  const c=idx<0?'':v.slice(idx+1).trim();const cost=c?parseInt(c,10)||100:100;
+  ensureRewards();
+  state.rewards.push({id:'rw'+Date.now().toString(36),icon:'🎁',name,cost});
+  save();renderExchange();
+}
+function delReward(id){if(confirm('删除这个奖励目标？')){ensureRewards();state.rewards=state.rewards.filter(x=>x.id!==id);save();renderExchange();}}
+
+
 function toggleArea(id){areaOpen[id]=!(areaOpen[id]!==false);renderCheck()}
 function toggleOverdue(){overdueOpen=!overdueOpen;renderCheck()}
 function toggleDoneGroup(g){doneOpen[g]=!(doneOpen[g]!==false);renderCheck()}
@@ -859,6 +929,7 @@ function showTab(name){
   if(name==='check')renderCheck();
   if(name==='log')fillLog();
   if(name==='stats')renderStats();
+  if(name==='exchange')renderExchange();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 document.getElementById('dock').addEventListener('click',e=>{const b=e.target.closest('.dock-btn');if(b)showTab(b.dataset.tab)});
@@ -927,6 +998,7 @@ async function pullIntoLocal(){
   if(!f||!f.content)return false;
   const d=JSON.parse(f.content);if(!d||!d.state)return false;
   state=d.state;sync.lastRev=d.rev||0;sync.rev=Math.max(sync.rev||0,d.rev||0);
+  if(!state.rewards)state.rewards=seedRewards();
   save();sync.dirty=false;saveSyncCfg();renderCheck();fillLog();return true;
 }
 async function restoreFromCloud(){
