@@ -779,7 +779,7 @@ function addReview(){
   let what,good='',bad='';
   if(single){what=document.getElementById('rvSingleText').value.trim();}
   else{what=document.getElementById('rvWhat').value.trim();good=document.getElementById('rvGood').value.trim();bad=document.getElementById('rvBad').value.trim();}
-  const hasContent=single?!what:(what||good||bad);
+  const hasContent=single?what:(what||good||bad);
   if(!hasContent){
     const msg=single?'请先填写内容再保存':'请至少填写一段内容再保存';
     const hint=document.getElementById('rvHint');if(hint)hint.textContent=msg;
