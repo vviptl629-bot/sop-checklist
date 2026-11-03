@@ -217,6 +217,24 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 .ex-add input{flex:1;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px;font-family:inherit;background:#fffdf9;color:var(--ink);min-width:0}
 .ex-add .btn{width:auto;padding:11px 18px;margin:0;font-size:14px;flex:none}
 .ex-hint{font-size:12px;color:var(--sub);margin-top:8px;line-height:1.5}
+/* 图表复盘计数器（sop-v38，与复盘文字内容无关） */
+.ex-ctr-label{text-align:center;font-size:13px;color:var(--sub);margin:2px 0 8px;line-height:1.5}
+.ex-counter{display:flex;align-items:center;justify-content:center;gap:16px;margin:4px 0 10px}
+.ex-counter .num{font-size:36px;font-weight:800;color:var(--accent);line-height:1}
+.ex-counter .unit{font-size:13px;color:var(--sub);margin-left:3px}
+.ex-step{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:#fffdf9;color:var(--ink);font-size:24px;font-weight:700;cursor:pointer;flex:none;line-height:1}
+.ex-step:active{background:var(--accent);color:#1a120c}
+.ex-add2{display:flex;gap:8px;margin-top:6px;align-items:stretch}
+.ex-add2 .nm{flex:1;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px;font-family:inherit;background:#fffdf9;color:var(--ink);min-width:0}
+.ex-cost-wrap{display:flex;flex-direction:column;gap:3px;flex:none}
+.ex-add2 .cost{width:74px;border:1px solid var(--line);border-radius:10px;padding:11px 6px;font-size:15px;font-family:inherit;background:#fffdf9;color:var(--ink);text-align:center}
+.ex-cost-wrap small{font-size:10px;color:var(--sub);text-align:center;line-height:1}
+.ex-add2 .btn{width:auto;padding:11px 16px;margin:0;font-size:14px;flex:none}
+/* 复盘页内图表计数器 */
+.rv-chart-ctr{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--sub);margin:2px 0 12px;flex-wrap:wrap}
+.rv-chart-ctr b{color:var(--accent);font-size:17px;font-weight:800}
+.mini{width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:#fffdf9;color:var(--ink);font-size:17px;font-weight:700;cursor:pointer;line-height:1;flex:none}
+.mini:active{background:var(--accent);color:#1a120c}
 </style>
 </head>
 <body>
@@ -242,6 +260,7 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
   <section class="panel" id="tab-log">
     <div class="card">
       <h2>多维复盘（六类）</h2>
+      <div class="rv-chart-ctr">图表复盘累计 <b id="rvChartN">0</b> 张 <button class="mini" onclick="addChart()">＋1</button> <button class="mini" onclick="subChart()">－1</button></div>
       <div class="rv-tags">
         <span class="rv-tag" data-type="all">全部</span>
         <span class="rv-tag active" data-type="life">生活</span>
@@ -436,6 +455,7 @@ let state={};
 try{state=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!state||!state.areas||!state.days){state=seedState()}
 if(!state.rewards)state.rewards=seedRewards();
+if(typeof state.chartCount!=='number')state.chartCount=0;
 
 let cur=ymd();
 let liveToday=cur, followingToday=true, activeTab='check';
@@ -712,11 +732,8 @@ function renderStats(){
 }
 
 /* ===================== 兑换页 (sop-v37) ===================== */
-/* 积分来源：累计复盘条数（每条复盘=1 分，含想法/思考/一日总结/普通复盘）。数据现成，零新增字段。 */
-function reviewPoints(){
-  let n=0;for(const d in (state.days||{})){const v=state.days[d]||{};n+=((v.reviews)||[]).length;}
-  return n;
-}
+/* 积分来源：独立「图表复盘」计数器（与复盘文字内容无关，单独 ＋1）。 */
+function chartPoints(){return typeof state.chartCount==='number'?state.chartCount:0;}
 function seedRewards(){return [
   {id:'rw1',icon:'🥤',name:'水杯',cost:100},
   {id:'rw2',icon:'📘',name:'交易书 ×1',cost:300},
@@ -725,13 +742,15 @@ function seedRewards(){return [
 function ensureRewards(){if(!state.rewards||!Array.isArray(state.rewards))state.rewards=seedRewards();}
 function renderExchange(){
   const box=document.getElementById('tab-exchange');if(!box)return;
-  ensureRewards();
-  const pts=reviewPoints(),rs=state.rewards||[];
+  ensureRewards();updateChartCtr();
+  const pts=chartPoints(),rs=state.rewards||[];
   const next=rs.filter(r=>r.cost>pts).sort((a,b)=>a.cost-b.cost)[0];
   const ringPct=next?Math.min(100,Math.round(pts/next.cost*100)):100;
-  let h='<div class="card"><h2>兑换 · 我的欲望清单</h2>';
+  let h='<div class="card"><h2>兑换 · 图表复盘奖励</h2>';
+  h+=`<div class="ex-ctr-label">图表复盘累计（每完成 1 张图表复盘点 ＋1）</div>`;
+  h+=`<div class="ex-counter"><button class="ex-step" onclick="subChart()">－</button><span><span class="num">${pts}</span><span class="unit">张</span></span><button class="ex-step" onclick="addChart()">＋</button></div>`;
   h+=`<div class="ex-ring" style="background:conic-gradient(var(--accent) 0 ${ringPct}%, var(--line) ${ringPct}% 100%)"><span>已攒 <b>${pts}</b> 分${next?`<br>距 ${esc(next.name)} 还差 ${next.cost-pts}`:`<br>已全部解锁 🎉`}</span></div>`;
-  h+=`<div class="ex-note">每记 1 条复盘 = 1 分。门槛到达即解锁，积分不清零，可继续冲下一档。</div>`;
+  h+=`<div class="ex-note">积分来自「图表复盘」计数，与复盘文字内容无关；达到门槛即解锁，积分不清零，可继续冲下一档。</div>`;
   if(!rs.length)h+='<div class="ov-empty" style="padding:8px 0">还没有目标，下面添加你的欲望清单 🎯</div>';
   rs.forEach(r=>{
     const pct=Math.max(0,Math.min(100,Math.round(pts/r.cost*100)));
@@ -741,21 +760,27 @@ function renderExchange(){
       <div class="ex-bar"><i style="width:${pct}%"></i></div>
     </div>`;
   });
-  h+=`<div class="ex-add"><input id="exInput" placeholder="如：机械键盘 | 500" autocomplete="off" onkeydown="if(event.key==='Enter')addReward()"><button class="btn" style="border-color:var(--accent);color:var(--accent)" onclick="addReward()">添加</button></div>`;
-  h+=`<div class="ex-hint">格式：名称，或 名称|门槛分（不填默认 100）。已解锁的奖励会自动点亮，可随时删除重设。奖励随云端备份同步。</div>`;
+  h+=`<div class="ex-add2">
+    <input class="nm" id="exName" placeholder="欲望清单名称，如：机械键盘" autocomplete="off" onkeydown="if(event.key==='Enter')addReward()">
+    <div class="ex-cost-wrap"><input class="cost" id="exCost" type="number" min="1" inputmode="numeric" placeholder="100" value="100"><small>门槛(张)</small></div>
+    <button class="btn" style="border-color:var(--accent);color:var(--accent)" onclick="addReward()">添加</button>
+  </div>`;
+  h+=`<div class="ex-hint">名称必填，门槛默认 100 张图表（可改）。奖励随云端备份同步，可随时删除重设。</div>`;
   h+='</div>';
   box.innerHTML=h;
 }
 function addReward(){
-  const inp=document.getElementById('exInput');if(!inp)return;
-  const v=inp.value.trim();if(!v)return;
-  const idx=v.indexOf('|');const name=idx<0?v:v.slice(0,idx).trim();
-  const c=idx<0?'':v.slice(idx+1).trim();const cost=c?parseInt(c,10)||100:100;
+  const nm=document.getElementById('exName'),cs=document.getElementById('exCost');
+  if(!nm)return;const name=nm.value.trim();if(!name)return;
+  let cost=cs?parseInt(cs.value,10):0;if(!cost||cost<1)cost=100;
   ensureRewards();
-  state.rewards.push({id:'rw'+Date.now().toString(36),icon:'🎁',name,cost});
+  state.rewards.push({id:'rw'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),icon:'🎁',name,cost});
   save();renderExchange();
 }
 function delReward(id){if(confirm('删除这个奖励目标？')){ensureRewards();state.rewards=state.rewards.filter(x=>x.id!==id);save();renderExchange();}}
+function addChart(){if(typeof state.chartCount!=='number')state.chartCount=0;state.chartCount++;save();if(activeTab==='exchange')renderExchange();else updateChartCtr();}
+function subChart(){if(typeof state.chartCount!=='number')state.chartCount=0;if(state.chartCount>0)state.chartCount--;save();if(activeTab==='exchange')renderExchange();else updateChartCtr();}
+function updateChartCtr(){const e=document.getElementById('rvChartN');if(e)e.textContent=chartPoints();}
 
 
 function toggleArea(id){areaOpen[id]=!(areaOpen[id]!==false);renderCheck()}
@@ -894,8 +919,8 @@ function renderReviews(){
     h+=`<div class="rv-group"><div class="rv-group-head" onclick="toggleRvGroup('${d}')"><span class="rv-group-arrow">${open?'▾':'▸'}</span><span class="rv-group-date">${d}</span><span class="rv-group-cnt">${cnt}</span></div><div class="rv-group-body" id="rvg-${d}" style="display:${open?'block':'none'}">${revs.map(r=>rvItemHtml(r,d)).join('')}</div></div>`;
   });
   if(rvType==='idea'&&doneIdeas.length){const open=rvOpen.has('__done__');h+=`<div class="rv-group rv-done"><div class="rv-group-head" onclick="toggleRvGroup('__done__')"><span class="rv-group-arrow">${open?'▾':'▸'}</span><span class="rv-group-date">已落实</span><span class="rv-group-cnt">${doneIdeas.length}</span></div><div class="rv-group-body" id="rvg-__done__" style="display:${open?'block':'none'}">${doneIdeas.map(o=>rvItemHtml(o.r,o.date)).join('')}</div></div>`;}
-  if(!h){box.innerHTML='<div class="rv-empty">'+(rvType==='all'?'还没有任何复盘记录。':'该分类下还没有复盘记录。')+'</div>';updateRvTagCounts();updateRvToggleAllLabel();return;}
-  box.innerHTML=h;updateRvTagCounts();updateRvToggleAllLabel();
+  if(!h){box.innerHTML='<div class="rv-empty">'+(rvType==='all'?'还没有任何复盘记录。':'该分类下还没有复盘记录。')+'</div>';updateRvTagCounts();updateRvToggleAllLabel();updateChartCtr();return;}
+  box.innerHTML=h;updateRvTagCounts();updateRvToggleAllLabel();updateChartCtr();
 }
 function toggleRvAll(){
   const days=state.days||{};const dateKeys=rvOnlyContent?Object.keys(days).filter(d=>(days[d].reviews||[]).length):Object.keys(days);
@@ -999,6 +1024,7 @@ async function pullIntoLocal(){
   const d=JSON.parse(f.content);if(!d||!d.state)return false;
   state=d.state;sync.lastRev=d.rev||0;sync.rev=Math.max(sync.rev||0,d.rev||0);
   if(!state.rewards)state.rewards=seedRewards();
+if(typeof state.chartCount!=='number')state.chartCount=0;
   save();sync.dirty=false;saveSyncCfg();renderCheck();fillLog();return true;
 }
 async function restoreFromCloud(){
