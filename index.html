@@ -198,43 +198,47 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 .st-line .track i{display:block;height:100%;background:var(--accent2);border-radius:5px}
 .st-line .pc{width:38px;text-align:right;color:var(--sub)}
 .st-foot{font-size:12.5px;color:var(--sub);margin-top:14px;line-height:1.7}
-/* 兑换页 (sop-v37) */
-.ex-ring{width:144px;height:144px;border-radius:50%;margin:14px auto;display:flex;align-items:center;justify-content:center}
-.ex-ring span{width:110px;height:110px;border-radius:50%;background:#fffdf9;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:13px;color:var(--sub);line-height:1.5}
-.ex-ring b{font-size:22px;color:var(--accent);display:block;margin-bottom:2px}
-.ex-note{font-size:13px;color:var(--sub);margin:4px 0 14px;line-height:1.6}
-.ex-reward{border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:10px;background:#fffdf9}
+/* 兑换页 (sop-v41)：方案 A 紧凑一体卡，计入=新攒并入余量 */
+.ex-top{border:1px solid var(--line);border-radius:14px;padding:13px 14px;background:var(--card);margin-bottom:6px}
+.ex-top .lab{font-size:12.5px;color:var(--sub);margin-bottom:8px}
+.ex-top .mid{display:flex;align-items:center;gap:8px}
+.ex-num{font-family:inherit;font-weight:800;color:var(--accent);border:1.5px solid var(--line);border-radius:10px;background:#fffdf9;text-align:center;font-size:22px;width:84px;padding:6px 4px;margin:0;-moz-appearance:textfield}
+.ex-num:focus{outline:none;border-color:var(--accent)}
+.ex-num::-webkit-outer-spin-button,.ex-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.ex-addbtn{flex:none;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:10px;padding:9px 15px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.ex-rest{margin-left:auto;text-align:right}
+.ex-rest b{display:block;font-size:28px;color:var(--accent);line-height:1.05}
+.ex-rest span{font-size:11.5px;color:var(--sub)}
+.ex-top .prog{margin-top:11px;height:7px;background:var(--line);border-radius:5px;overflow:hidden}
+.ex-top .prog i{display:block;height:100%;width:0;background:var(--accent)}
+.ex-reward{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:9px;background:#fffdf9}
+.ex-reward.done{opacity:.9}
 .ex-r-top{display:flex;align-items:center;gap:8px}
 .ex-ic{font-size:18px;flex:none}
-.ex-name{flex:1;font-size:15px;color:var(--ink);font-weight:600;min-width:0;overflow-wrap:anywhere}
-.ex-pill{font-size:11.5px;font-weight:700;border-radius:10px;padding:2px 9px;background:var(--accent);color:#1a120c;flex:none}
-.ex-pill.ok{background:var(--ok,#7bbf8a);color:#0e1a10}
+.ex-name{flex:1;font-size:15px;color:var(--ink);font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ex-x{color:var(--sub);cursor:pointer;font-size:18px;font-weight:700;flex:none;padding:0 4px;line-height:1}
 .ex-x:hover{color:var(--accent)}
-.ex-bar{height:8px;background:var(--line);border-radius:6px;overflow:hidden;margin-top:9px}
-.ex-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
-.ex-add{display:flex;gap:8px;margin-top:6px}
-.ex-add input{flex:1;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px;font-family:inherit;background:#fffdf9;color:var(--ink);min-width:0}
-.ex-add .btn{width:auto;padding:11px 18px;margin:0;font-size:14px;flex:none}
-.ex-hint{font-size:12px;color:var(--sub);margin-top:8px;line-height:1.5}
-/* 图表复盘计数器（sop-v38，与复盘文字内容无关） */
-.ex-ctr-label{text-align:center;font-size:13px;color:var(--sub);margin:2px 0 8px;line-height:1.5}
-.ex-counter{display:flex;align-items:center;justify-content:center;gap:16px;margin:4px 0 10px}
-.ex-counter .num{font-size:36px;font-weight:800;color:var(--accent);line-height:1}
-.ex-counter .unit{font-size:13px;color:var(--sub);margin-left:3px}
-.ex-step{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:#fffdf9;color:var(--ink);font-size:24px;font-weight:700;cursor:pointer;flex:none;line-height:1}
-.ex-step:active{background:var(--accent);color:#1a120c}
-.ex-setrow{display:flex;align-items:center;gap:8px;justify-content:center;margin:2px 0 8px;font-size:13px;color:var(--sub)}
-.ex-setrow span{white-space:nowrap}
-.ex-setnum{width:88px;border:1px solid var(--line);border-radius:10px;padding:8px 8px;font-size:15px;font-family:inherit;background:#fffdf9;color:var(--ink);text-align:center}
-.ex-setbtn{border:1px solid var(--line);background:var(--card);color:var(--sub);border-radius:10px;padding:8px 14px;font-size:14px;cursor:pointer;font-family:inherit}
-.ex-setbtn:hover{border-color:var(--accent);color:var(--accent)}
+.ex-cost-edit{flex:none;width:58px;border:1px solid var(--line);border-radius:8px;background:#fffdf9;color:var(--ink);font-family:inherit;font-size:14px;font-weight:700;text-align:center;padding:5px 2px;margin:0;-moz-appearance:textfield}
+.ex-cost-edit:focus{outline:none;border-color:var(--accent)}
+.ex-cost-edit::-webkit-outer-spin-button,.ex-cost-edit::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.ex-rbtn{flex:none;border:1px solid var(--accent);color:var(--accent);background:#fffdf9;border-radius:10px;padding:5px 12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.ex-rbtn:disabled{opacity:.45;cursor:default;border-color:var(--line);color:var(--sub)}
+.ex-rbtn.undo{border-color:var(--line);color:var(--sub)}
+.ex-red-cost{flex:none;font-size:13px;font-weight:700;color:var(--sub)}
+.ex-redeemed{border:1px solid var(--line);border-radius:12px;margin-top:12px;background:#fffdf9;overflow:hidden}
+.ex-red-head{display:flex;align-items:center;gap:8px;padding:11px 13px;cursor:pointer;user-select:none}
+.ex-red-arrow{color:var(--accent);font-size:12px;width:14px;text-align:center;flex:none}
+.ex-red-title{font-size:14px;font-weight:700;color:var(--ink);flex:1}
+.ex-red-title b{color:var(--accent)}
+.ex-red-title small{font-size:11.5px;color:var(--sub);font-weight:400;margin-left:6px}
+.ex-red-body{padding:2px 12px 12px}
 .ex-add2{display:flex;gap:8px;margin-top:6px;align-items:stretch}
 .ex-add2 .nm{flex:1;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px;font-family:inherit;background:#fffdf9;color:var(--ink);min-width:0}
 .ex-cost-wrap{display:flex;flex-direction:column;gap:3px;flex:none}
 .ex-add2 .cost{width:74px;border:1px solid var(--line);border-radius:10px;padding:11px 6px;font-size:15px;font-family:inherit;background:#fffdf9;color:var(--ink);text-align:center}
 .ex-cost-wrap small{font-size:10px;color:var(--sub);text-align:center;line-height:1}
 .ex-add2 .btn{width:auto;padding:11px 16px;margin:0;font-size:14px;flex:none}
+.ex-hint{font-size:12px;color:var(--sub);margin-top:8px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -454,7 +458,8 @@ let state={};
 try{state=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!state||!state.areas||!state.days){state=seedState()}
 if(!state.rewards)state.rewards=seedRewards();
-if(typeof state.chartCount!=='number')state.chartCount=0;
+if(typeof state.pool!=='number')state.pool=(typeof state.chartCount==='number'&&state.chartCount>0)?state.chartCount:0;
+if(typeof state.chartCount!=='undefined')delete state.chartCount;
 
 let cur=ymd();
 let liveToday=cur, followingToday=true, activeTab='check';
@@ -730,57 +735,93 @@ function renderStats(){
   box.innerHTML=h;
 }
 
-/* ===================== 兑换页 (sop-v37) ===================== */
-/* 积分来源：独立「图表复盘」计数器（与复盘文字内容无关，单独 ＋1）。 */
-function chartPoints(){return typeof state.chartCount==='number'?state.chartCount:0;}
+/* ===================== 兑换页 (sop-v41)：计入=新攒张数并入余量 ===================== */
+/* 模型：state.pool=可兑换余量（计入累加、兑换扣减、撤回返还）；rewards[].done=已兑换记录（不影响余量计算）。 */
+function exPool(){return typeof state.pool==='number'?state.pool:0;}
 function seedRewards(){return [
   {id:'rw1',icon:'🥤',name:'水杯',cost:100},
   {id:'rw2',icon:'📘',name:'交易书 ×1',cost:300},
   {id:'rw3',icon:'🎓',name:'PA 课程',cost:500},
 ];}
 function ensureRewards(){if(!state.rewards||!Array.isArray(state.rewards))state.rewards=seedRewards();}
+function ensurePool(){ /* 迁移：老版 chartCount 即"扣过兑换后的可用量"，直接转为余量，切换当天余量不跳变 */
+  if(typeof state.pool!=='number'){
+    state.pool=(typeof state.chartCount==='number'&&state.chartCount>0)?state.chartCount:0;
+  }
+  if(typeof state.chartCount!=='undefined')delete state.chartCount;
+}
+function exRedeemedSum(){return (state.rewards||[]).filter(r=>r.done).reduce((s,r)=>s+(r.cost||0),0);}
+let exRedeemedOpen=false;
 function renderExchange(){
   const box=document.getElementById('tab-exchange');if(!box)return;
-  ensureRewards();
-  const pts=chartPoints(),rs=state.rewards||[];
-  const next=rs.filter(r=>r.cost>pts).sort((a,b)=>a.cost-b.cost)[0];
-  const ringPct=next?Math.min(100,Math.round(pts/next.cost*100)):100;
+  ensureRewards();ensurePool();
+  const pool=exPool(),rs=state.rewards||[];
+  const act=rs.filter(r=>!r.done),done=rs.filter(r=>r.done);
+  const denom=pool+exRedeemedSum();
+  const pct=denom>0?Math.min(100,Math.round(exRedeemedSum()/denom*100)):0;
   let h='<div class="card"><h2>兑换 · 图表复盘奖励</h2>';
-  h+=`<div class="ex-ctr-label">图表复盘累计（每完成 1 张图表复盘点 ＋1）</div>`;
-  h+=`<div class="ex-counter"><button class="ex-step" onclick="subChart()">－</button><span><span class="num">${pts}</span><span class="unit">张</span></span><button class="ex-step" onclick="addChart()">＋</button></div>`;
-  h+=`<div class="ex-setrow"><span>直接设定</span><input class="ex-setnum" id="exChartSet" type="number" min="0" inputmode="numeric" value="${pts}" onkeydown="if(event.key==='Enter')setChart()"><button class="ex-setbtn" onclick="setChart()">设定</button></div>`;
-  h+=`<div class="ex-ring" style="background:conic-gradient(var(--accent) 0 ${ringPct}%, var(--line) ${ringPct}% 100%)"><span>已攒 <b>${pts}</b> 分${next?`<br>距 ${esc(next.name)} 还差 ${next.cost-pts}`:`<br>已全部解锁 🎉`}</span></div>`;
-  h+=`<div class="ex-note">积分来自「图表复盘」计数，与复盘文字内容无关；达到门槛即解锁，积分不清零，可继续冲下一档。</div>`;
-  if(!rs.length)h+='<div class="ov-empty" style="padding:8px 0">还没有目标，下面添加你的欲望清单 🎯</div>';
-  rs.forEach(r=>{
-    const pct=Math.max(0,Math.min(100,Math.round(pts/r.cost*100)));
-    const got=pts>=r.cost;
+  h+='<div class="ex-top"><div class="lab">图表复盘 · 新攒张数（计入后并入余量）</div>';
+  h+=`<div class="mid"><input class="ex-num" id="exAddInput" type="number" min="0" inputmode="numeric" placeholder="0" onkeydown="if(event.key==='Enter')addPool()"><button class="ex-addbtn" onclick="addPool()">计入</button><span class="ex-rest"><b>${pool}</b><span>可兑换</span></span></div>`;
+  h+=`<div class="prog"><i style="width:${pct}%"></i></div></div>`;
+  if(!act.length)h+='<div class="ov-empty" style="padding:8px 0">清单已全部兑换，或去下方添加新欲望 🎯</div>';
+  act.forEach(r=>{
     h+=`<div class="ex-reward">
-      <div class="ex-r-top"><span class="ex-ic">${r.icon||'🎁'}</span><span class="ex-name">${esc(r.name)}</span>${got?'<span class="ex-pill ok">已解锁</span>':`<span class="ex-pill">差 ${r.cost-pts}</span>`}<span class="ex-x" onclick="delReward('${r.id}')" title="删除">×</span></div>
-      <div class="ex-bar"><i style="width:${pct}%"></i></div>
+      <div class="ex-r-top"><span class="ex-ic">${r.icon||'🎁'}</span><span class="ex-name">${esc(r.name)}</span><input class="ex-cost-edit" type="number" min="1" inputmode="numeric" value="${r.cost}" oninput="editRewardCost('${r.id}',this.value)"><button class="ex-rbtn" data-rid="${r.id}" onclick="redeemReward('${r.id}')" ${pool<r.cost?'disabled':''}>兑换</button><span class="ex-x" onclick="delReward('${r.id}')" title="删除">×</span></div>
     </div>`;
   });
+  if(done.length){
+    h+='<div class="ex-redeemed"><div class="ex-red-head" onclick="toggleExRedeemed()"><span class="ex-red-arrow">▸</span><span class="ex-red-title">已兑换 <b>'+done.length+'</b><small>点可展开/收起</small></span></div>';
+    h+=`<div class="ex-red-body" style="display:${exRedeemedOpen?'block':'none'}">`;
+    done.forEach(r=>{
+      h+=`<div class="ex-reward done"><div class="ex-r-top"><span class="ex-ic">${r.icon||'🎁'}</span><span class="ex-name">${esc(r.name)}</span><span class="ex-red-cost">${r.cost}</span><button class="ex-rbtn undo" onclick="undoRedeem('${r.id}')">撤回</button></div></div>`;
+    });
+    h+='</div></div>';
+  }
   h+=`<div class="ex-add2">
     <input class="nm" id="exName" placeholder="欲望清单名称，如：机械键盘" autocomplete="off" onkeydown="if(event.key==='Enter')addReward()">
     <div class="ex-cost-wrap"><input class="cost" id="exCost" type="number" min="1" inputmode="numeric" placeholder="100" value="100"><small>门槛(张)</small></div>
     <button class="btn" style="border-color:var(--accent);color:var(--accent)" onclick="addReward()">添加</button>
   </div>`;
-  h+=`<div class="ex-hint">名称必填，门槛默认 100 张图表（可改）。奖励随云端备份同步，可随时删除重设。</div>`;
+  h+=`<div class="ex-hint">计入的张数按新攒并入余量，已兑换的不会重复扣；兑换扣减、撤回返还；成本数字每项可改；已兑换自动收纳到底部，可展开撤回。</div>`;
   h+='</div>';
   box.innerHTML=h;
 }
+function addPool(){
+  const el=document.getElementById('exAddInput');if(!el)return;
+  let n=parseInt(el.value,10);if(isNaN(n)||n<=0)return;
+  ensurePool();state.pool=exPool()+n;save();renderExchange();
+}
+function redeemReward(id){
+  ensurePool();ensureRewards();
+  const r=state.rewards.find(x=>x.id===id);if(!r||r.done)return;
+  if(exPool()<r.cost)return;
+  r.done=true;state.pool=exPool()-r.cost;exRedeemedOpen=false;save();renderExchange();
+}
+function undoRedeem(id){
+  ensurePool();ensureRewards();
+  const r=state.rewards.find(x=>x.id===id);if(!r||!r.done)return;
+  r.done=false;state.pool=exPool()+r.cost;save();renderExchange();
+}
+function editRewardCost(id,v){
+  ensureRewards();
+  const r=state.rewards.find(x=>x.id===id);if(!r)return;
+  let n=parseInt(v,10);if(isNaN(n)||n<1)n=1;r.cost=n;save();
+  /* 不整页重绘，避免输入框失焦；仅刷新各兑换按钮禁用态 */
+  document.querySelectorAll('#tab-exchange .ex-rbtn:not(.undo)').forEach(b=>{
+    const rr=(state.rewards||[]).find(x=>x.id===b.dataset.rid);
+    if(rr&&!rr.done)b.disabled=exPool()<rr.cost;
+  });
+}
+function toggleExRedeemed(){exRedeemedOpen=!exRedeemedOpen;renderExchange();}
 function addReward(){
   const nm=document.getElementById('exName'),cs=document.getElementById('exCost');
   if(!nm)return;const name=nm.value.trim();if(!name)return;
   let cost=cs?parseInt(cs.value,10):0;if(!cost||cost<1)cost=100;
   ensureRewards();
-  state.rewards.push({id:'rw'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),icon:'🎁',name,cost});
+  state.rewards.push({id:'rw'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),icon:'🎁',name,cost,done:false});
   save();renderExchange();
 }
 function delReward(id){if(confirm('删除这个奖励目标？')){ensureRewards();state.rewards=state.rewards.filter(x=>x.id!==id);save();renderExchange();}}
-function addChart(){if(typeof state.chartCount!=='number')state.chartCount=0;state.chartCount++;save();renderExchange();}
-function subChart(){if(typeof state.chartCount!=='number')state.chartCount=0;if(state.chartCount>0)state.chartCount--;save();renderExchange();}
-function setChart(){const el=document.getElementById('exChartSet');if(!el)return;let n=parseInt(el.value,10);if(isNaN(n)||n<0)n=0;state.chartCount=n;save();renderExchange();}
 
 
 function toggleArea(id){areaOpen[id]=!(areaOpen[id]!==false);renderCheck()}
@@ -1024,7 +1065,8 @@ async function pullIntoLocal(){
   const d=JSON.parse(f.content);if(!d||!d.state)return false;
   state=d.state;sync.lastRev=d.rev||0;sync.rev=Math.max(sync.rev||0,d.rev||0);
   if(!state.rewards)state.rewards=seedRewards();
-if(typeof state.chartCount!=='number')state.chartCount=0;
+if(typeof state.pool!=='number')state.pool=(typeof state.chartCount==='number'&&state.chartCount>0)?state.chartCount:0;
+if(typeof state.chartCount!=='undefined')delete state.chartCount;
   save();sync.dirty=false;saveSyncCfg();renderCheck();fillLog();return true;
 }
 async function restoreFromCloud(){
