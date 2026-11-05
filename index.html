@@ -648,10 +648,12 @@ function past7(){
 }
 function computeOverdue(){
   const win=past7(); const out=[];
+  const since=(state.meta&&state.meta.overdueSince)||'';   // sop-v43：基准日之前的逾期一律不算
   AREAS.forEach(a=>{
     (state.areas[a.id].items||[]).forEach(it=>{
       let missed=0; const dates=[];
       win.forEach(d=>{
+        if(since&&d<since)return;                 // 起步期（基准日前）不产生逾期
         if(areaResting(a.id,d))return;            // 休息日不计入"未完成"
         if(it.createdAt&&it.createdAt>d)return;   // 该天项目尚未创建，不算逾期
         const rec=state.days[d];
@@ -677,20 +679,27 @@ function migrateItemDates(){
   const ks=Object.keys(state.days||{}).sort();
   const install=ks[0]||ymd();
   if(!state.meta.since)state.meta.since=install;
-  if(state.meta.statV>=2)return;
-  const today=ymd();
-  const areaTicked={};
-  for(const aid in (state.areas||{})){
-    areaTicked[aid]=ks.some(d=>{const dd=(((state.days[d]||{}).done||{})[aid])||{};return Object.keys(dd).length>0;});
+  let dirty=false;
+  if(!(state.meta.statV>=2)){
+    const today=ymd();
+    const areaTicked={};
+    for(const aid in (state.areas||{})){
+      areaTicked[aid]=ks.some(d=>{const dd=(((state.days[d]||{}).done||{})[aid])||{};return Object.keys(dd).length>0;});
+    }
+    for(const aid in (state.areas||{})){
+      (((state.areas[aid]||{}).items)||[]).forEach(it=>{
+        if(it.createdAt)return;
+        it.createdAt=areaTicked[aid]?install:today;
+      });
+    }
+    state.meta.statV=2;dirty=true;
   }
-  for(const aid in (state.areas||{})){
-    (((state.areas[aid]||{}).items)||[]).forEach(it=>{
-      if(it.createdAt)return;
-      it.createdAt=areaTicked[aid]?install:today;
-    });
+  if(!(state.meta.statV>=3)){
+    /* sop-v43：逾期基准日——11-05 前为起步期，逾期一律不计；基准日随 7 天窗口滑出自然失效 */
+    if(!state.meta.overdueSince)state.meta.overdueSince='2026-11-05';
+    state.meta.statV=3;dirty=true;
   }
-  state.meta.statV=2;
-  save();
+  if(dirty)save();
 }
 function itemsAliveOn(areaId,d){
   return ((state.areas[areaId]||{}).items||[]).filter(it=>!it.createdAt||it.createdAt<=d);
