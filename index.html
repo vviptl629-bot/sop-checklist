@@ -460,6 +460,7 @@ if(!state||!state.areas||!state.days){state=seedState()}
 if(!state.rewards)state.rewards=seedRewards();
 if(typeof state.pool!=='number')state.pool=(typeof state.chartCount==='number'&&state.chartCount>0)?state.chartCount:0;
 if(typeof state.chartCount!=='undefined')delete state.chartCount;
+migrateItemDates();
 
 let cur=ymd();
 let liveToday=cur, followingToday=true, activeTab='check';
@@ -620,6 +621,7 @@ function renderTempSection(){
       <div class="clist-head" onclick="toggleTempDone()">
         <span class="clist-arrow">${tempDoneOpen?'▾':'▸'}</span>
         <span class="clist-title">已完成 <span class="clist-n">${doneRows.length}</span></span>
+        <span class="acts" style="margin-left:auto" onclick="event.stopPropagation()"><button class="mini del" onclick="clearDoneTemp()">清空</button></span>
       </div>
       <div id="tempDoneList" style="display:${tempDoneOpen?'block':'none'}">`;
     doneRows.forEach(({d,t})=>{
@@ -651,6 +653,7 @@ function computeOverdue(){
       let missed=0; const dates=[];
       win.forEach(d=>{
         if(areaResting(a.id,d))return;            // 休息日不计入"未完成"
+        if(it.createdAt&&it.createdAt>d)return;   // 该天项目尚未创建，不算逾期
         const rec=state.days[d];
         // 该天没有任何真实勾选（用户未使用 App 或已清空）→ 不计入逾期，避免空白日生成虚假统计
         if(!dayHasTick(rec))return;
@@ -666,6 +669,32 @@ function computeOverdue(){
 
 /* ===================== 统计页 (sop-v35) ===================== */
 /* 口径与 computeOverdue 完全一致：只认有真实勾选的日期，休息日不计入分母 */
+/* sop-v42：项目创建日迁移——统计只算"当天已存在"的项目，新加项目不回填历史。
+   规则：① 该分区历史上勾过 → 其项目创建日 = 安装起始日（最早日期键），保证历史统计不被改写；
+         ② 该分区从未勾过（如今天刚建读书SOP）→ 项目创建日 = 今天，绝不回填到之前几日。 */
+function migrateItemDates(){
+  if(!state.meta||typeof state.meta!=='object')state.meta={};
+  const ks=Object.keys(state.days||{}).sort();
+  const install=ks[0]||ymd();
+  if(!state.meta.since)state.meta.since=install;
+  if(state.meta.statV>=2)return;
+  const today=ymd();
+  const areaTicked={};
+  for(const aid in (state.areas||{})){
+    areaTicked[aid]=ks.some(d=>{const dd=(((state.days[d]||{}).done||{})[aid])||{};return Object.keys(dd).length>0;});
+  }
+  for(const aid in (state.areas||{})){
+    (((state.areas[aid]||{}).items)||[]).forEach(it=>{
+      if(it.createdAt)return;
+      it.createdAt=areaTicked[aid]?install:today;
+    });
+  }
+  state.meta.statV=2;
+  save();
+}
+function itemsAliveOn(areaId,d){
+  return ((state.areas[areaId]||{}).items||[]).filter(it=>!it.createdAt||it.createdAt<=d);
+}
 function dayHasTick(rec){
   if(!rec||!rec.done)return false;
   return Object.keys(rec.done).some(k=>rec.done[k]&&Object.keys(rec.done[k]).length>0);
@@ -677,7 +706,7 @@ function dayCompletion(d){
   let tot=0,hit=0;
   AREAS.forEach(a=>{
     if(areaResting(a.id,d))return;
-    const items=state.areas[a.id].items||[];
+    const items=itemsAliveOn(a.id,d);
     const dd=(rec.done&&rec.done[a.id])||{};
     tot+=items.length;
     hit+=items.filter(it=>dd[it.id]).length;
@@ -694,7 +723,7 @@ function areaPct(days,areaId){
   days.forEach(d=>{
     const rec=state.days[d];
     if(!dayHasTick(rec)||areaResting(areaId,d))return;
-    const items=state.areas[areaId].items||[];
+    const items=itemsAliveOn(areaId,d);
     const dd=(rec.done&&rec.done[areaId])||{};
     tot+=items.length;hit+=items.filter(it=>dd[it.id]).length;
   });
@@ -731,7 +760,7 @@ function renderStats(){
     const v=areaPct(d30,a.id);
     h+=`<div class="st-line"><span class="nm">${esc(a.title)}</span><span class="track"><i style="width:${v===null?0:v}%"></i></span><span class="pc">${v===null?'—':v+'%'}</span></div>`;
   });
-  h+=`<div class="st-foot">近 30 天复盘 ${rv} 条　·　待处理重要事项 ${imp} 项<br>口径：只统计有真实勾选记录的日期；休息日不计入分母，避免空白日拉低完成率。</div></div>`;
+  h+=`<div class="st-foot">近 30 天复盘 ${rv} 条　·　待处理重要事项 ${imp} 项<br>口径：只统计有真实勾选记录的日期；休息日不计入分母，避免空白日拉低完成率。<br>统计自 ${state.meta&&state.meta.since?state.meta.since:'—'} 起；项目只从创建当日起计入，后来新增的不回填历史。</div></div>`;
   box.innerHTML=h;
 }
 
@@ -833,6 +862,18 @@ function editItem(areaId,id){const it=state.areas[areaId].items.find(x=>x.id===i
 function addItem(areaId){openEditor('item',areaId,null,'')}
 function toggleTemp(id,v){const t=(day().temp||[]).find(x=>x.id===id);if(t){t.done=v;save();renderCheck()}}
 function toggleTempDone(){tempDoneOpen=!tempDoneOpen;renderCheck()}
+/* sop-v42：一键清空已完成临时任务（范围为页面上"已完成"列表：当天已完成 + 跨天★已完成） */
+function clearDoneTemp(){
+  let n=0;
+  for(const dt in (state.days||{})){((state.days[dt]||{}).temp||[]).forEach(t=>{if(t.done&&(dt===cur||t.imp))n++;});}
+  if(!n)return;
+  if(!confirm('删除全部已完成临时任务（含跨天★重要项），共 '+n+' 条？删除后不可恢复。'))return;
+  for(const dt in (state.days||{})){
+    const arr=(state.days[dt]||{}).temp||[];
+    state.days[dt].temp=arr.filter(t=>!(t.done&&(dt===cur||t.imp)));
+  }
+  save();renderCheck();
+}
 function delTemp(id){if(confirm('删除这条临时任务？')){day().temp=(day().temp||[]).filter(x=>x.id!==id);state.tempDel=state.tempDel||{};state.tempDel[id]=Date.now();save();renderCheck()}}
 function editTemp(id){const t=(day().temp||[]).find(x=>x.id===id);if(t)openEditor('temp',null,id,t.text,cur,!!t.imp)}
 function addTemp(){openEditor('temp',null,null,'',cur,false)}
@@ -868,7 +909,7 @@ function confirmEditor(){
     }
   }else{
     if(editorId){const it=state.areas[editorArea].items.find(x=>x.id===editorId);if(it)it.text=v;}
-    else state.areas[editorArea].items.push({id:uid(),text:v});
+    else state.areas[editorArea].items.push({id:uid(),text:v,createdAt:ymd()});
   }
   save();closeEditor();renderCheck();
 }
@@ -1067,6 +1108,7 @@ async function pullIntoLocal(){
   if(!state.rewards)state.rewards=seedRewards();
 if(typeof state.pool!=='number')state.pool=(typeof state.chartCount==='number'&&state.chartCount>0)?state.chartCount:0;
 if(typeof state.chartCount!=='undefined')delete state.chartCount;
+  migrateItemDates();
   save();sync.dirty=false;saveSyncCfg();renderCheck();fillLog();return true;
 }
 async function restoreFromCloud(){
