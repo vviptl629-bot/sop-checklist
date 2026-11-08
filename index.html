@@ -179,10 +179,10 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 .gear-btn{flex:none;border:1px solid var(--line);background:var(--card);color:var(--sub);font-family:inherit;font-size:19px;width:40px;height:40px;border-radius:12px;cursor:pointer;line-height:1}
 .gear-btn:active{color:var(--accent);border-color:var(--accent)}
 .setting-back{margin-bottom:12px}
-.st-metrics{display:flex;gap:8px;margin:6px 0 14px}
-.st-metrics>div{flex:1;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 6px;text-align:center}
-.st-metrics b{display:block;font-size:22px;color:var(--accent);line-height:1.2}
-.st-metrics span{display:block;font-size:11.5px;color:var(--sub);margin-top:3px}
+.st-metrics{display:flex;gap:7px;margin:6px 0 14px}
+.st-metrics>div{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 3px;text-align:center;display:flex;flex-direction:column;justify-content:center;min-height:76px}
+.st-metrics b{display:block;font-size:21px;color:var(--accent);line-height:1.2}
+.st-metrics span{display:block;font-size:10.5px;color:var(--sub);margin-top:4px;line-height:1.35}
 .st-sec{font-size:13px;color:var(--sub);margin:16px 0 8px}
 .st-bars{display:flex;align-items:flex-end;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
 .st-bars .col{flex:1;text-align:center;min-width:0}
@@ -747,15 +747,16 @@ function streak(){
 function renderStats(){
   const box=document.getElementById('tab-stats');if(!box)return;
   const d30=statDays(30),d7=statDays(7);
-  const st=streak(),p=periodPct(d30),ov=computeOverdue().length;
+  const st=streak(),p7=periodPct(d7),p=periodPct(d30),ov=computeOverdue().length;
   let rv=0;d30.forEach(d=>rv+=(((state.days[d]||{}).reviews)||[]).length);
   let imp=0;for(const d in state.days){((state.days[d]||{}).temp||[]).forEach(t=>{if(t.imp&&!t.done)imp++;});}
-  const pctTxt=p.pct===null?'—':p.pct+'%';
+  const pct7Txt=p7.pct===null?'—':p7.pct+'%',pctTxt=p.pct===null?'—':p.pct+'%';
   let h='<div class="card"><h2>打卡统计</h2>';
   h+=`<div class="st-metrics">
-    <div><b>${st}</b><span>连续打卡天数</span></div>
-    <div><b>${pctTxt}</b><span>近 30 天完成率</span></div>
-    <div><b>${ov}</b><span>当前逾期项</span></div>
+    <div><b>${st}</b><span>连续打卡<br>天数</span></div>
+    <div><b>${pct7Txt}</b><span>近 7 天<br>完成率</span></div>
+    <div><b>${pctTxt}</b><span>近 30 天<br>完成率</span></div>
+    <div><b>${ov}</b><span>当前<br>逾期项</span></div>
   </div>`;
   if(p.valid===0)h+='<div class="ov-empty" style="padding:10px 0">还没有打卡记录。去打卡页勾几项，这里就会长出数据。</div>';
   h+='<div class="st-sec">近 7 天完成率（休息日 / 未使用的日期不计）</div><div class="st-bars">';
