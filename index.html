@@ -239,6 +239,42 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 .ex-cost-wrap small{font-size:10px;color:var(--sub);text-align:center;line-height:1}
 .ex-add2 .btn{width:auto;padding:11px 16px;margin:0;font-size:14px;flex:none}
 .ex-hint{font-size:12px;color:var(--sub);margin-top:8px;line-height:1.5}
+
+/* ===== C 版 · 学习复盘台 / 学习清单（sop-v45）===== */
+.modal-card{max-height:88vh;overflow-y:auto}
+.view-tabs{display:flex;gap:8px;margin-bottom:14px}
+.view-tabs button{flex:1;border:1px solid var(--line);background:var(--card);color:var(--sub);border-radius:12px;padding:10px 6px;font-size:14px;font-family:inherit;cursor:pointer}
+.view-tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.lrn-segs{display:flex;gap:6px;background:var(--bg);border-radius:12px;padding:5px;margin-bottom:12px}
+.lrn-segs button{flex:1;border:0;background:transparent;color:var(--sub);border-radius:9px;padding:9px 4px;font-size:13.5px;font-family:inherit;cursor:pointer}
+.lrn-segs button.on{background:var(--card);color:var(--accent);font-weight:600;box-shadow:0 1px 4px rgba(90,60,40,.10)}
+.lrn-kicker{font-size:12px;color:var(--sub);letter-spacing:.06em}
+.lrn-cum{font-size:30px;font-weight:700;color:var(--accent);line-height:1.25;margin:6px 0 2px}
+.lrn-cum small{font-size:13px;font-weight:400;color:var(--sub)}
+.lrn-sub{font-size:12.5px;color:var(--sub);margin-bottom:10px}
+.lrn-track{height:8px;background:var(--line);border-radius:999px;overflow:hidden;position:relative;margin-top:4px}
+.lrn-track i{display:block;height:100%;background:var(--ok);border-radius:999px}
+.lrn-tri{display:flex;justify-content:space-between;font-size:12px;color:var(--sub);margin-top:7px}
+.lrn-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.lrn-actions .btn{flex:1;min-width:130px}
+.lrn-pagein{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}
+.lrn-pagein input{width:110px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:15px;background:#fff;color:var(--ink);font-family:inherit}
+.lrn-sec{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+.lrn-sec-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;font-weight:600;margin-bottom:8px}
+.lrn-fold{cursor:pointer;user-select:none}
+.lrn-line{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;flex-wrap:wrap}
+.lrn-line:last-child{border-bottom:0}
+.lrn-line .lrn-meta{font-size:12px;color:var(--sub)}
+.lrn-empty{font-size:13px;color:var(--sub);padding:8px 0}
+.lrn-note{font-size:12.5px;color:var(--sub);line-height:1.6;margin-top:8px}
+.lrn-tag{display:inline-block;font-size:11.5px;color:var(--accent);border:1px solid #e7c4b8;border-radius:999px;padding:1px 8px;margin-left:6px;white-space:nowrap}
+.lrn-listcard-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:15px;font-weight:600;cursor:pointer;user-select:none}
+.lrn-listcard-head span:last-child{color:var(--sub);font-size:13px;font-weight:400;white-space:nowrap}
+.lrn-edit-grid{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+.lrn-edit-grid label{font-size:12.5px;color:var(--sub);display:block;margin-bottom:3px}
+.lrn-edit-grid input,.lrn-edit-grid textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:15px;background:#fff;color:var(--ink);font-family:inherit}
+.lrn-edit-grid textarea{resize:vertical;min-height:54px}
+
 </style>
 </head>
 <body>
@@ -246,7 +282,7 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
   <header>
     <div>
       <h1>每日 SOP 核查表</h1>
-      <p>分区打卡 · 休息自动隐藏 · 逾期汇总 · 临时任务</p>
+      <p>分区打卡 · 学习复盘台 C 版 · sop-v45</p>
     </div>
     <button class="gear-btn" onclick="showTab('settings')" aria-label="设置">⚙</button>
   </header>
@@ -262,7 +298,11 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
 
   <!-- 复盘（多维复盘） -->
   <section class="panel" id="tab-log">
-    <div class="card">
+    <div class="view-tabs">
+      <button id="logTabRv" class="on" onclick="setLogView('rv')">多维复盘</button>
+      <button id="logTabLearn" onclick="setLogView('learn')">学习复盘台</button>
+    </div>
+    <div id="rvView"><div class="card">
       <h2>多维复盘（六类）</h2>
       <div class="rv-tags">
         <span class="rv-tag" data-type="all">全部</span>
@@ -282,6 +322,7 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
         <div id="rvSingle" style="display:none">
           <div class="field"><label id="rvSingleLabel">内容</label><textarea id="rvSingleText" rows="4" placeholder="写下你的复盘…" oninput="clearRvInvalid()"></textarea></div>
         </div>
+        <div class="field"><label>来源（可选 · 第 3 集 / P108）</label><input id="rvSrc" type="text" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:15px;background:#fff;color:var(--ink);font-family:inherit" placeholder="例如：第 3 集、P108"></div>
         <div class="btn-row">
           <span class="rv-hint" id="rvHint"></span>
           <button class="btn warn" onclick="rvReset()">清空</button>
@@ -293,7 +334,8 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
         <label class="rv-switch"><input type="checkbox" id="rvOnlyContent" checked onchange="setRvOnlyContent(this.checked)"><span>仅看有内容的日期</span></label>
       </div>
       <div id="rvList" style="margin-top:8px"></div>
-    </div>
+    </div></div>
+    <div id="learnView" style="display:none"></div>
   </section>
 
   <!-- 统计 (sop-v35) -->
@@ -370,6 +412,27 @@ ul.clist li.done label{color:var(--sub);text-decoration:line-through}
     <div class="modal-actions">
       <button class="mini" onclick="closeEditor()">取消</button>
       <button class="mini" style="border-color:var(--accent);color:var(--accent)" onclick="confirmEditor()">确定</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- C 版：学习清单多字段编辑器（移动端全量编辑） -->
+<div class="modal-mask" id="learnModal" onclick="if(event.target===this)closeLearnEditor()">
+  <div class="modal-card">
+    <h3 id="learnEditTitle">添加课程</h3>
+    <div class="lrn-edit-grid">
+      <div><label>名称（必填）</label><input id="leTitle" type="text" placeholder="例如：PA 价格行为 / Al Brooks 教材"></div>
+      <div><label id="leTotalLabel">总集数</label><input id="leTotal" type="number" min="1" inputmode="numeric" placeholder="24"></div>
+      <div id="leMinutesWrap"><label>单集时长（分钟）</label><input id="leMinutes" type="number" min="1" inputmode="numeric" placeholder="45"></div>
+      <div><label>来源 / 讲师</label><input id="leSource" type="text" placeholder="例如：V 神 / Z 说交易 / 线索C"></div>
+      <div><label>关联 SOP 条款</label><input id="leSop" type="text" placeholder="例如：SOP-07"></div>
+      <div><label>备注</label><textarea id="leNote" rows="2" placeholder="选填"></textarea></div>
+    </div>
+    <div class="modal-err" id="learnEditErr"></div>
+    <div class="modal-actions">
+      <button class="mini" onclick="closeLearnEditor()">取消</button>
+      <button class="mini" style="border-color:var(--accent);color:var(--accent)" onclick="confirmLearnEditor()">确定</button>
     </div>
   </div>
 </div>
@@ -462,11 +525,43 @@ if(typeof state.pool!=='number')state.pool=(typeof state.chartCount==='number'&&
 if(typeof state.chartCount!=='undefined')delete state.chartCount;
 migrateItemDates();
 
+/* ===== C 版 · 学习复盘台数据：独立分支，不污染既有 areas / days / reviews ===== */
+function learnSeed(){
+  return {
+    review:{count:0,dailyChart:1,dailyMin:30},
+    video:{courses:[
+      {id:'lc1',title:'PA 价格行为',total:24,minutes:45,source:'Al Brooks',sop:'SOP-07',note:''},
+      {id:'lc2',title:'V 神 · 信号棒专题',total:12,minutes:38,source:'V 神',sop:'',note:''},
+      {id:'lc3',title:'Z 说交易',total:20,minutes:38,source:'Z 说交易',sop:'',note:''},
+      {id:'lc4',title:'线索C 实战课',total:16,minutes:52,source:'线索C',sop:'',note:''}
+    ],reached:0,dailyEp:1,dailyMin:45},
+    reading:{books:[
+      {id:'lb1',title:'Al Brooks 价格行为教材',total:320,sop:'读书SOP',note:''}
+    ],page:0,total:320,dailyPage:10},
+    daily:{}, tab:'review', view:'rv', listOpen:false, poolOpen:false
+  };
+}
+function ensureLearn(){
+  if(!state.learn||typeof state.learn!=='object')state.learn=learnSeed();
+  const L=state.learn,S=learnSeed();
+  for(const k in S){if(L[k]===undefined)L[k]=S[k];}
+  if(!L.review||typeof L.review.count!=='number')L.review=S.review;
+  if(!L.video||typeof L.video.reached!=='number')L.video=S.video;
+  if(!L.reading||typeof L.reading.page!=='number')L.reading=S.reading;
+  if(!Array.isArray(L.video.courses))L.video.courses=S.video.courses;
+  if(!Array.isArray(L.reading.books))L.reading.books=S.reading.books;
+  if(!L.daily||typeof L.daily!=='object')L.daily={};
+  return L;
+}
+function learnToday(){const L=ensureLearn();if(!L.daily[cur])L.daily[cur]={review:0,video:0,page:0};return L.daily[cur];}
+ensureLearn();
+
 let cur=ymd();
 let liveToday=cur, followingToday=true, activeTab='check';
 
 function day(){return state.days[cur]||(state.days[cur]={done:{life:{},coffee:{},waishi:{},trade:{},reading:{}},reviews:[],temp:[]})}
-function save(){localStorage.setItem(KEY,JSON.stringify(state));scheduleBackup();}
+/* sop-v45：初始化早期（migrateItemDates 首次落盘）同步对象尚未就绪，此处降级为只写本机，避免整段脚本中断 */
+function save(){localStorage.setItem(KEY,JSON.stringify(state));try{scheduleBackup()}catch(e){}}
 function esc(s){return (s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
 
 /* 折叠状态 */
@@ -515,6 +610,8 @@ function renderCheck(){
       </div>
     </div>`;
   });
+  // C 版：学习清单（视频课 / 专业阅读清单元数据）
+  h+=renderLearnCard();
   // 逾期汇总卡（置底）
   const ov=computeOverdue();
   h+=`<div class="card overdue">
@@ -959,7 +1056,7 @@ function applyRvTypeUI(){
   if(!editingRv)setRvSubmit();
   clearRvInvalid();
 }
-function rvReset(){document.getElementById('rvWhat').value='';document.getElementById('rvGood').value='';document.getElementById('rvBad').value='';document.getElementById('rvSingleText').value='';clearRvInvalid();}
+function rvReset(){document.getElementById('rvWhat').value='';document.getElementById('rvGood').value='';document.getElementById('rvBad').value='';document.getElementById('rvSingleText').value='';const se=document.getElementById('rvSrc');if(se)se.value='';clearRvInvalid();}
 function clearRvInvalid(){const h=document.getElementById('rvHint');if(h)h.textContent='';const w=document.getElementById('rvWhat');if(w)w.style.borderColor='';const s=document.getElementById('rvSingleText');if(s)s.style.borderColor='';}
 function addReview(){
   const single=['idea','think','summary'].includes(rvType);
@@ -974,9 +1071,10 @@ function addReview(){
     fld.style.borderColor='var(--accent)';try{fld.focus()}catch(e){}return;
   }
   clearRvInvalid();
+  const se0=document.getElementById('rvSrc');const src=se0?se0.value.trim():'';
   const revs=editingRv?((state.days[editingRvDate]||(state.days[editingRvDate]={done:{life:{},coffee:{},waishi:{},trade:{},reading:{}},reviews:[],temp:[]})).reviews):(day().reviews||(day().reviews=[]));
-  if(editingRv){const r=revs.find(x=>x.id===editingRv);if(r){r.type=rvType;r.what=what;r.good=good;r.bad=bad;r.ts=Date.now();}editingRv=null;editingRvDate=null;setRvSubmit();}
-  else{revs.unshift({id:'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),type:rvType,what,good,bad,ts:Date.now()});}
+  if(editingRv){const r=revs.find(x=>x.id===editingRv);if(r){r.type=rvType;r.what=what;r.good=good;r.bad=bad;r.src=src;r.ts=Date.now();}editingRv=null;editingRvDate=null;setRvSubmit();}
+  else{revs.unshift({id:'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),type:rvType,what,good,bad,src:src,ts:Date.now()});}
   rvReset();save();renderReviews();
 }
 function findReview(id){for(const d in (state.days||{})){if((state.days[d].reviews||[]).some(x=>x.id===id))return d;}return null;}
@@ -992,12 +1090,13 @@ function rvItemHtml(r,date){
   else{acts=`<button class="mini" onclick="editReview('${r.id}')">编辑</button><button class="mini del" onclick="delReview('${r.id}')">删除</button>`;}
   const doneCls=(r.type==='idea'&&r.done)?' done':'';
   const badge=(r.type==='idea'&&r.done)?'<span class="rv-done-badge">✓ 已落实</span>':'';
-  return `<div class="rv-item${doneCls}"><div class="rv-head"><span class="tag">${label}</span>${badge}<span class="rv-meta">${date} ${hh}</span><span class="rv-acts">${acts}</span></div><div class="rv-body">${body}</div></div>`;
+  const srcTag=r.src?'<span class="lrn-tag">'+esc(r.src)+'</span>':'';
+  return `<div class="rv-item${doneCls}"><div class="rv-head"><span class="tag">${label}</span>${badge}${srcTag}<span class="rv-meta">${date} ${hh}</span><span class="rv-acts">${acts}</span></div><div class="rv-body">${body}</div></div>`;
 }
 function markIdeaDone(id){const d=findReview(id);if(!d)return;const r=(state.days[d].reviews||[]).find(x=>x.id===id);if(r){r.done=true;save();renderReviews();}}
 function undoIdea(id){const d=findReview(id);if(!d)return;const r=(state.days[d].reviews||[]).find(x=>x.id===id);if(r){r.done=false;save();renderReviews();}}
 function hasDoneIdeas(){if(rvType!=='idea')return false;const days=state.days||{};for(const d in days)if((days[d].reviews||[]).some(r=>r.type==='idea'&&r.done))return true;return false;}
-function editReview(id){const d=findReview(id);if(!d)return;const r=(state.days[d].reviews||[]).find(x=>x.id===id);editingRv=id;editingRvDate=d;rvType=r.type;applyRvTypeUI();const single=['idea','think','summary'].includes(r.type);if(single)document.getElementById('rvSingleText').value=r.what||'';else{document.getElementById('rvWhat').value=r.what||'';document.getElementById('rvGood').value=r.good||'';document.getElementById('rvBad').value=r.bad||'';}setRvSubmit();}
+function editReview(id){const d=findReview(id);if(!d)return;const r=(state.days[d].reviews||[]).find(x=>x.id===id);editingRv=id;editingRvDate=d;rvType=r.type;applyRvTypeUI();const single=['idea','think','summary'].includes(r.type);if(single)document.getElementById('rvSingleText').value=r.what||'';else{document.getElementById('rvWhat').value=r.what||'';document.getElementById('rvGood').value=r.good||'';document.getElementById('rvBad').value=r.bad||'';}const sf=document.getElementById('rvSrc');if(sf)sf.value=r.src||'';setRvSubmit();}
 function renderReviews(){
   const days=state.days||{};
   const dateKeys=rvOnlyContent?Object.keys(days).filter(d=>(days[d].reviews||[]).length).sort().reverse():Object.keys(days).sort().reverse();
@@ -1036,8 +1135,173 @@ function updateRvTagCounts(){
 function delReview(id){const d=findReview(id);if(!d)return;if(confirm('删除这条复盘？')){state.days[d].reviews=(state.days[d].reviews||[]).filter(x=>x.id!==id);if(editingRv===id){editingRv=null;rvReset();setRvSubmit();}save();renderReviews();}}
 document.querySelectorAll('.rv-tag').forEach(t=>t.addEventListener('click',()=>{if(editingRv){editingRv=null;rvReset();setRvSubmit();}rvType=t.dataset.type;applyRvTypeUI();renderReviews();}));
 
+
+/* ===================== C 版 · 学习复盘台（复盘页整块视图） ===================== */
+/* 打卡页：学习清单卡（清单元数据，低频编辑） */
+function renderLearnCard(){
+  const L=ensureLearn(),v=L.video.courses,r=L.reading.books;
+  let h=`<div class="card" id="learnListCard">
+    <div class="lrn-listcard-head" onclick="toggleLearnList()">
+      <span>学习清单 · 视频课 / 专业阅读</span><span>${L.listOpen?'收起 ▾':'展开 ▸'} · ${v.length+r.length} 条</span>
+    </div>
+    <div id="learnListBody" style="display:${L.listOpen?'block':'none'}">`;
+  h+=`<div class="lrn-sec"><div class="lrn-sec-head"><span>视频课 · ${v.length} 条课程线</span><button class="mini" onclick="openLearnEditor('video')">＋ 添加课程</button></div>`;
+  h+= v.length? v.map(c=>`<div class="lrn-line"><span>${esc(c.title)}<span class="lrn-meta"> · ${c.total||0} 集${c.minutes?' · '+c.minutes+'m/集':''}${c.source?' · '+esc(c.source):''}${c.sop?' · '+esc(c.sop):''}</span></span><span class="acts"><button class="mini" onclick="openLearnEditor('video','${c.id}')">编辑</button><button class="mini del" onclick="delLearnItem('video','${c.id}')">删除</button></span></div>`).join('') : '<div class="lrn-empty">还没有课程线，点右上角添加。</div>';
+  h+=`</div><div class="lrn-sec"><div class="lrn-sec-head"><span>专业阅读 · ${r.length} 本</span><button class="mini" onclick="openLearnEditor('reading')">＋ 添加书目</button></div>`;
+  h+= r.length? r.map(b=>`<div class="lrn-line"><span>${esc(b.title)}<span class="lrn-meta"> · ${b.total||0} 页${b.sop?' · '+esc(b.sop):''}${b.note?' · '+esc(b.note):''}</span></span><span class="acts"><button class="mini" onclick="openLearnEditor('reading','${b.id}')">编辑</button><button class="mini del" onclick="delLearnItem('reading','${b.id}')">删除</button></span></div>`).join('') : '<div class="lrn-empty">还没有书目，点右上角添加。</div>';
+  h+=`</div><div class="lrn-note">清单元数据在这里编辑（低频）。每天的集数 / 绝对页码去「复盘 → 学习复盘台」推进。共用同一份数据，Gist 同步一起带走。</div></div></div>`;
+  return h;
+}
+function toggleLearnList(){const L=ensureLearn();L.listOpen=!L.listOpen;save();renderCheck();}
+function gotoLearnList(){const L=ensureLearn();L.listOpen=true;save();showTab('check');setTimeout(function(){const el=document.getElementById('learnListCard');if(el&&el.scrollIntoView)el.scrollIntoView({behavior:'smooth',block:'start'});},90);}
+
+/* 多字段弹窗：全量移动端编辑 */
+let leType='video',leId='';
+function openLearnEditor(type,id){
+  leType=type;leId=id||'';
+  const L=ensureLearn(),arr=type==='video'?L.video.courses:L.reading.books;
+  const o=id?arr.find(x=>x.id===id):null;
+  document.getElementById('learnEditTitle').textContent=(o?'编辑':'添加')+(type==='video'?'课程':'书目');
+  document.getElementById('leTitle').value=o?o.title:'';
+  document.getElementById('leTotalLabel').textContent=type==='video'?'总集数':'总页数';
+  document.getElementById('leTotal').value=o?(o.total||''):'';
+  document.getElementById('leMinutesWrap').style.display=type==='video'?'block':'none';
+  document.getElementById('leMinutes').value=o?(o.minutes||''):'';
+  document.getElementById('leSource').value=o?(o.source||''):'';
+  document.getElementById('leSop').value=o?(o.sop||''):'';
+  document.getElementById('leNote').value=o?(o.note||''):'';
+  document.getElementById('learnEditErr').textContent='';
+  document.getElementById('learnModal').classList.add('show');
+  setTimeout(function(){const i=document.getElementById('leTitle');if(i)i.focus();},60);
+}
+function closeLearnEditor(){document.getElementById('learnModal').classList.remove('show');leId='';}
+function confirmLearnEditor(){
+  const t=document.getElementById('leTitle').value.trim();
+  if(!t){document.getElementById('learnEditErr').textContent='名称不能为空';return;}
+  const L=ensureLearn(),arr=leType==='video'?L.video.courses:L.reading.books;
+  const total=Math.max(0,parseInt(document.getElementById('leTotal').value,10)||0);
+  const obj={title:t,total:total,
+    minutes:leType==='video'?(parseInt(document.getElementById('leMinutes').value,10)||0):0,
+    source:document.getElementById('leSource').value.trim(),
+    sop:document.getElementById('leSop').value.trim(),
+    note:document.getElementById('leNote').value.trim()};
+  if(leId){const o=arr.find(x=>x.id===leId);if(o)Object.assign(o,obj);}
+  else arr.push(Object.assign({id:'l'+Date.now().toString(36)+Math.random().toString(36).slice(2,5)},obj));
+  if(leType==='reading'){L.reading.total=L.reading.books.reduce((s,b)=>s+(parseInt(b.total,10)||0),0)||total;}
+  save();closeLearnEditor();renderCheck();if(activeTab==='log')renderLearn();
+}
+function delLearnItem(type,id){
+  if(!confirm('删除这一条？累计进度不会回退。'))return;
+  const L=ensureLearn(),arr=type==='video'?L.video.courses:L.reading.books;
+  const i=arr.findIndex(x=>x.id===id);if(i<0)return;arr.splice(i,1);
+  if(type==='reading')L.reading.total=L.reading.books.reduce((s,b)=>s+(parseInt(b.total,10)||0),0);
+  save();renderCheck();if(activeTab==='log')renderLearn();
+}
+
+/* 复盘页视图切换 */
+function applyLogView(){
+  const v=ensureLearn().view||'rv';
+  const a=document.getElementById('logTabRv'),b=document.getElementById('logTabLearn');
+  if(a)a.classList.toggle('on',v==='rv');if(b)b.classList.toggle('on',v==='learn');
+  const rv=document.getElementById('rvView'),lv=document.getElementById('learnView');
+  if(rv)rv.style.display=v==='rv'?'block':'none';
+  if(lv)lv.style.display=v==='learn'?'block':'none';
+  if(v==='learn')renderLearn();
+}
+function setLogView(v){const L=ensureLearn();L.view=v;save();applyLogView();if(v==='rv')renderReviews();}
+function setLearnTab(t){const L=ensureLearn();L.tab=t;save();renderLearn();}
+function learnTogglePool(){const L=ensureLearn();L.poolOpen=!L.poolOpen;save();renderLearn();}
+
+/* 进度操作 */
+function learnAddReview(){const L=ensureLearn(),T=learnToday();L.review.count=(L.review.count||0)+1;T.review=(T.review||0)+1;save();renderLearn();}
+function learnVideoTotal(L){return L.video.courses.reduce((s,c)=>s+(parseInt(c.total,10)||0),0)||24;}
+function learnBookTotal(L){return L.reading.total||L.reading.books.reduce((s,b)=>s+(parseInt(b.total,10)||0),0)||320;}
+function learnAddEpisode(){
+  const L=ensureLearn(),T=learnToday(),total=learnVideoTotal(L);
+  if((L.video.reached||0)>=total){alert('已到达最后一集，可到「打卡 → 学习清单」调整总集数。');return;}
+  L.video.reached=(L.video.reached||0)+1;T.video=(T.video||0)+1;save();renderLearn();
+}
+function learnSavePage(){
+  const el=document.getElementById('lrnPageIn');if(!el)return;
+  const L=ensureLearn(),T=learnToday(),total=learnBookTotal(L);
+  const p=Math.max(0,Math.min(total,parseInt(el.value,10)||0));
+  const old=L.reading.page||0;
+  if(p>old)T.page=(T.page||0)+(p-old);
+  L.reading.page=p;L.reading.total=total;save();renderLearn();
+}
+
+/* 待安排池（清单自动生成）+ 关联笔记 */
+function learnTodoHtml(tab){
+  const L=ensureLearn();let items=[];
+  if(tab==='review')items=[{t:'欧美盘复盘 · 待开始',m:'复盘'},{t:'待归因 → 挂 SOP 条款',m:'闭环'},{t:'同类 setup 复验第 1 次',m:'纠正项验证'}];
+  if(tab==='video')items=L.video.courses.slice(0,8).map(c=>({t:c.title+' · 第 '+((L.video.reached||0)+1)+' 集',m:(c.minutes||45)+'m'}));
+  if(tab==='read')items=L.reading.books.slice(0,8).map(b=>({t:b.title+' · 读到 P'+((L.reading.page||0)+(L.reading.dailyPage||10)),m:'P'+(L.reading.page||0)}));
+  let h=`<div class="lrn-sec lrn-fold" onclick="learnTogglePool()"><div class="lrn-sec-head"><span>待安排 · 全部 ${items.length} 件</span><span style="font-size:12px;color:var(--sub);font-weight:400">${L.poolOpen?'收起 ▾':'展开 ▸'}</span></div></div><div id="lrnPool" style="display:${L.poolOpen?'block':'none'}">`;
+  h+=items.length?items.map(x=>`<div class="lrn-line"><span>${esc(x.t)}</span><span class="lrn-meta">${esc(x.m)}</span></div>`).join(''):'<div class="lrn-empty">清单为空，去「编辑清单 ›」加一条。</div>';
+  h+=`</div><div class="lrn-note">待安排池由清单自动生成，不用手动搬。</div>`;
+  return h;
+}
+function learnNotesHtml(tab){
+  const out=[],days=state.days||{};
+  Object.keys(days).sort().reverse().forEach(d=>{(days[d].reviews||[]).forEach(r=>{
+    const src=r.src||'';
+    const hit=tab==='review'?(r.type==='trade'||!!src):tab==='video'?/第/.test(src):/P\s?\d+/i.test(src);
+    if(hit)out.push({d,r,src});
+  });});
+  let h=`<div class="lrn-sec"><div class="lrn-sec-head"><span>关联笔记 · ${out.length} 条</span></div>`;
+  h+=out.length?out.slice(0,8).map(o=>`<div class="lrn-line"><span>${esc((o.r.what||'').slice(0,60))||'（无正文）'}${o.src?'<span class="lrn-tag">'+esc(o.src)+'</span>':''}</span><span class="lrn-meta">${o.d}</span></div>`).join(''):'<div class="lrn-empty">还没有带来源的笔记。在「多维复盘」里填「来源」后自动归到这里。</div>';
+  h+=`</div>`;return h;
+}
+
+/* 学习复盘台主渲染 */
+function renderLearn(){
+  const box=document.getElementById('learnView');if(!box)return;
+  const L=ensureLearn(),T=learnToday(),tab=L.tab||'review';
+  let h=`<div class="lrn-segs">
+    <button class="${tab==='review'?'on':''}" onclick="setLearnTab('review')">复盘</button>
+    <button class="${tab==='video'?'on':''}" onclick="setLearnTab('video')">视频课</button>
+    <button class="${tab==='read'?'on':''}" onclick="setLearnTab('read')">专业阅读</button>
+  </div><div class="card">`;
+  if(tab==='review'){
+    const goal=L.review.dailyChart||1,now=T.review||0,pct=Math.min(100,Math.round(now/goal*100));
+    h+=`<div class="lrn-kicker">动态安心线 · 今日最低量</div>
+      <div class="lrn-cum">${L.review.count||0} <small>笔 · 累计复盘笔数</small></div>
+      <div class="lrn-sub">今日 ${now}/${goal} 张 · ≥${L.review.dailyMin||30}min</div>
+      <div class="lrn-track"><i style="width:${pct}%"></i></div>
+      <div class="lrn-tri"><span>0</span><span>安心线 ${goal} 张</span></div>
+      <div class="lrn-actions"><button class="btn" onclick="learnAddReview()">＋ 记一笔复盘</button><button class="btn" onclick="gotoLearnList()">编辑清单 ›</button></div>`;
+    h+=learnTodoHtml('review')+learnNotesHtml('review')+`<div class="lrn-note">闭环链：待复盘 → 已记录（截图 + 入场理由）→ 已归因（错误标签）→ 纠正项（挂 SOP 条款）→ 已复验。</div>`;
+  }else if(tab==='video'){
+    const total=learnVideoTotal(L),reached=Math.min(L.video.reached||0,total),goal=L.video.dailyEp||1,now=T.video||0;
+    const pct=total?Math.min(100,Math.round(reached/total*100)):0;
+    h+=`<div class="lrn-kicker">动态安心线 · 今日最低量</div>
+      <div class="lrn-cum">${reached} / ${total} <small>集 · 已到达集数</small></div>
+      <div class="lrn-sub">今日 ${now}/${goal} 集 · ≥${L.video.dailyMin||45}min</div>
+      <div class="lrn-track"><i style="width:${Math.min(100,Math.round(now/goal*100))}%"></i></div>
+      <div class="lrn-tri"><span>今日 0</span><span>安心线 ${goal} 集</span></div>
+      <div class="lrn-sub" style="margin-top:12px">课程线总进度 ${pct}%（绝对集数，不做倒计时）</div>
+      <div class="lrn-track"><i style="width:${pct}%"></i></div>
+      <div class="lrn-actions"><button class="btn" onclick="learnAddEpisode()">完成第 ${reached+1} 集</button><button class="btn" onclick="gotoLearnList()">编辑清单 ›</button></div>`;
+    h+=learnTodoHtml('video')+learnNotesHtml('video');
+  }else{
+    const total=learnBookTotal(L),page=Math.min(L.reading.page||0,total),goal=L.reading.dailyPage||10,now=T.page||0;
+    h+=`<div class="lrn-kicker">动态安心线 · 今日最低量</div>
+      <div class="lrn-cum">P${page} / ${total} <small>· 今日已到达的绝对页码</small></div>
+      <div class="lrn-sub">今日 ${now}/${goal} 页</div>
+      <div class="lrn-track"><i style="width:${Math.min(100,Math.round(now/goal*100))}%"></i></div>
+      <div class="lrn-tri"><span>今日 0</span><span>安心线 ${goal} 页</span></div>
+      <div class="lrn-sub" style="margin-top:12px">全书进度 ${total?Math.round(page/total*100):0}%</div>
+      <div class="lrn-track"><i style="width:${total?Math.min(100,Math.round(page/total*100)):0}%"></i></div>
+      <div class="lrn-pagein"><input id="lrnPageIn" type="number" min="0" max="${total}" inputmode="numeric" value="${page}" placeholder="绝对页码"><button class="btn" onclick="learnSavePage()">保存今日页码</button><button class="btn" onclick="gotoLearnList()">编辑清单 ›</button></div>
+      <div class="lrn-note">只记「今日已到达的绝对页码」，手填覆盖，不逐页打勾、不做倒计时。</div>`;
+    h+=learnTodoHtml('read')+learnNotesHtml('read');
+  }
+  h+=`</div>`;box.innerHTML=h;
+}
+
 /* ===================== Tab / 设置 ===================== */
-function fillLog(){document.getElementById('dateIn').value=cur;renderReviews();}
+function fillLog(){document.getElementById('dateIn').value=cur;renderReviews();applyLogView();}
+
 function showTab(name){
   activeTab=name;
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
@@ -1100,7 +1364,7 @@ function scheduleBackup(){
   sync._t=setTimeout(()=>{if(sync.dirty)backupNow();},Math.max(3000,(sync.lastPush||0)+BACKUP_GAP-Date.now()));
 }
 /* 切后台/关页面时立即补一次备份，堵住「改完就杀进程」的缺口 */
-function flushBackup(){if(sync.enabled&&sync.token&&sync.dirty)backupNow();}
+function flushBackup(){try{if(sync.enabled&&sync.token&&sync.dirty)backupNow()}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.hidden)flushBackup();});
 window.addEventListener('pagehide',flushBackup);
 function mergeRemote(remote){if(!remote||!remote.days)return;state.tempDel=state.tempDel||{};/* 墓碑：已删除的临时任务 id->ts，防止云端并集复活 */
@@ -1119,6 +1383,7 @@ async function pullIntoLocal(){
 if(typeof state.pool!=='number')state.pool=(typeof state.chartCount==='number'&&state.chartCount>0)?state.chartCount:0;
 if(typeof state.chartCount!=='undefined')delete state.chartCount;
   migrateItemDates();
+  ensureLearn();
   save();sync.dirty=false;saveSyncCfg();renderCheck();fillLog();return true;
 }
 async function restoreFromCloud(){
